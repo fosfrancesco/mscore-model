@@ -2,9 +2,6 @@ import music21 as m21
 import sys
 from pathlib import Path
 from fractions import Fraction as Fr
-
-sys.path.append("/mnt/c/Documents and Settings/fosca/Desktop/CNAM/score_model/")
-
 from lib.m21utils import *
 
 
@@ -109,6 +106,19 @@ def test_gn2label():
     n1 = m21.note.Note("E--5")
     n1.duration.quarterLength = 3
     assert gn2label(n1) == ([{"npp": "E5", "alt": -2, "tie": False}], 2, 1, False)
+
+
+def test_simplify_label1():
+    n1 = m21.note.Note("E--5")
+    n1.duration.quarterLength = 3
+    assert simplify_label([gn2label(n1)]) == "[E5bb]2*"
+
+
+def test_simplify_label2():
+    n1 = m21.note.Note("D4")
+    n_grace = n1.getGrace()
+    n2 = m21.note.Note("E#5")
+    assert simplify_label([gn2label(n) for n in [n_grace, n2]]) == "[D4]4gn,[E5#]4"
 
 
 def test_gn2label_musicxml1():
@@ -316,5 +326,29 @@ def test_get_tuplets_musicxml2():
         [],
         [],
     ]
-    assert tuplet_gns_m1 == expected_tuplet_gns_m1
+    assert correct_tuplet(tuplet_gns_m1) == expected_tuplet_gns_m1
+
+
+def test_correct_tuplet():
+    tuplet = [
+        ["start"],
+        ["continue", "continue"],
+        ["continue", "continue"],
+        ["stop", "stop"],
+        [],
+        [],
+        [],
+        [],
+    ]
+    expected = [
+        ["start"],
+        ["continue", "start"],
+        ["continue", "continue"],
+        ["stop", "stop"],
+        [],
+        [],
+        [],
+        [],
+    ]
+    assert correct_tuplet(tuplet) == expected
 

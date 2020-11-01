@@ -1,13 +1,14 @@
 from music21 import duration
 from fractions import Fraction
 import math
+import copy
 
 
 def get_correct_accidental(acc):
     if acc is None:
         return None
     else:
-        return acc.alter
+        return int(acc.alter)
 
 
 def get_type_number(gn):
@@ -15,7 +16,7 @@ def get_type_number(gn):
         # because the MusicXML import seems bugged for grace notes, and set duration 0. Default 8 in this case
         return 8
     else:
-        return duration.convertTypeToNumber(gn.duration.type)
+        return int(duration.convertTypeToNumber(gn.duration.type))
 
 
 def get_note_head(gn):
@@ -96,6 +97,79 @@ def get_tuplets(gn):
     return ["continue" if t is None else t for t in tuplets_list]
 
 
+def correct_tuplet(tuplets_list):
+    new_tuplets_list = copy.deepcopy(tuplets_list)
+    # correct the wrong xml import where some start are substituted by None
+    max_tupl_len = max([len(tuplets_list)])
+    for ii in range(max_tupl_len):
+        start_index = None
+        stop_index = None
+        for i, note_tuple in enumerate(tuplets_list):
+            if len(note_tuple) > ii:
+                if note_tuple[ii] == "start":
+                    assert start_index is None
+                    start_index = ii
+                elif note_tuple[ii] is "continue":
+                    if start_index is None:
+                        start_index = ii
+                        new_tuplets_list[i][ii] = "start"
+                    else:
+                        new_tuplets_list[i][ii] = "continue"
+                elif note_tuple[ii] == "stop":
+                    start_index = None
+                else:
+                    raise TypeError("Invalid tuplet type")
+    return new_tuplets_list
+
+
+def alteration2string(alt_number):
+    """
+    Return a text repr of accidentals
+    """
+    if alt_number is None:
+        return ""
+    elif alt_number > 0:
+        return "#" * int(alt_number)
+    elif alt_number < 0:
+        return "b" * int(abs(alt_number))
+    else:
+        return "n"
+
+
+def tie2string(tie):
+    if tie:
+        return "T"
+    else:
+        return ""
+
+
+def dot2string(dot):
+    return "*" * int(dot)
+
+
+def gracenote2string(gracenote):
+    if gracenote:
+        return "gn"
+    else:
+        return ""
+
+
+def simplify_label(label):
+    # return a simpler label version
+    out = ""
+    for gn in label:
+        out += "["
+        for pitch in gn[0]:
+            out += "{}{}{},".format(
+                pitch["npp"], alteration2string(pitch["alt"]), tie2string(pitch["tie"]),
+            )
+        out = out[:-1]  # remove last comma
+        out += "]"
+        out += "{}{}{},".format(gn[1], dot2string(gn[2]), gracenote2string(gn[3]))
+    out = out[:-1]  # remove last comma
+    return out
+
+
 ########################### old functions to check
 
 
@@ -107,36 +181,6 @@ def get_tuplets(gn):
 #         else:
 #             _beam_list.append(n.beams.getTypes())
 #     return _beam_list
-
-
-def get_ties(note_list):
-    _general_ties_list = []
-    for n in note_list:
-        if n.tie == None:
-            _general_ties_list.append(None)
-        else:
-            _general_ties_list.append(n.tie.type)
-    # keep only the information of when a note is tied to the previous
-    # (also we solve the bad notation of having a start and a not specified stop, that can happen in music21)
-    _ties_list = [False] * len(_general_ties_list)
-    for i, t in enumerate(_general_ties_list):
-        if t == "start" and i < len(_ties_list) - 1:
-            _ties_list[i + 1] = True
-        elif t == "continue" and i < len(_ties_list) - 1:
-            _ties_list[i + 1] = True
-            if (
-                i == 0
-            ):  # we can have a continue in the first note if the tie is from the previous bar
-                _ties_list[i] = True
-        elif t == "stop":
-            if (
-                i == 0
-            ):  # we can have a stop in the first note if the tie is from the previous bar
-                _ties_list[i] = True
-            else:
-                # assert (_ties_list[i] == True) #removed to import wrong scores even if it vould be correct
-                _ties_list[i] = True
-    return _ties_list
 
 
 # def get_dots(note_list):

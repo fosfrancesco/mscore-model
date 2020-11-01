@@ -1,0 +1,546 @@
+# from music21 import *
+import lib.m21utils as m21u
+from fractions import Fraction
+
+# Digraph and the show() function are not useful for some application, so can be commented to reduce the dependencies
+from graphviz import Digraph
+
+from lib.m21utils import correct_tuplet, gn2label
+
+
+class Node:
+    def __init__(self, parent, type, label=None):
+        """
+        The generic Tree node class
+        :param parent: a Node instance
+        :param type: a String that can be "root", "internal", "leaf"
+        """
+        self.type = type
+        self.children = []  # each child is a Node
+        self.parent = parent
+        self.label = label
+        self.duration = None  # we initialize that when the tree is builded and complete
+
+        if self.type != "root":
+            parent.add_child(
+                self
+            )  # add a child in the parent Node if the parent is not the root
+
+    def add_child(self, child):
+        self.children.append(child)
+
+    def __str__(self):
+        return self.to_string()
+
+    def __repr__(self):
+        return self.to_string()
+
+    def to_string(self):
+        """
+        Return the string representation of the subtree under the Node
+        This class is override in InternalNode and NoteNode to make the recursion stop
+        """
+        out_string = "("
+        for c in self.children:
+            out_string = out_string + c.to_string() + ","
+        out_string = out_string[0:-1]  # remove the last comma
+        out_string += ")"  # close the grouping
+        return out_string
+
+    def subtree_size(self):
+        """
+        Return the size (number of nodes) of the subtree under the node (taking into accunt the node)
+        This class is override in NoteNode to make the recursion stop
+        """
+        size = 1
+        for c in self.get_children():
+            size += c.subtree_size()
+        return size
+
+    def has_children(self):
+        if len(self.children) == 0:
+            return False
+        else:
+            return True
+
+    def _all_nodes(self, node, children_list):
+        for c in node.get_children_node():
+            self._all_nodes(c, children_list)
+        children_list.append(node)  # add the current node
+        return children_list
+
+    def get_subtree_nodes(self):
+        return self._all_nodes(self, [])
+
+    def get_note_nodes(self):
+        return [n for n in self.get_subtree_nodes() if n.get_type() == "note"]
+
+    def atomic(self):
+        return len(self.children) == 0
+
+    def not_atomic(self):
+        return len(self.children) != 0
+
+    def unary(self):
+        return len(self.children) == 1
+
+    def not_unary(self):
+        return len(self.children) != 1
+
+    def __eq__(self, other):
+        return self.to_string() == other.to_string()
+
+
+class Root(Node):
+    def __init__(self):
+        Node.__init__(self, None, "root")
+
+    def get_parent(self):
+        raise TypeError("Root nodes have no parent")
+
+
+class InternalNode(Node):
+    def __init__(self, parent, label):
+        Node.__init__(self, parent, "internal", label)
+        self.label = label
+
+    def to_string(self):
+        out_string = str(self.label)
+        return out_string + super(InternalNode, self).to_string()
+
+
+class LeafNode(Node):
+    def __init__(self, parent, label):
+        Node.__init__(self, parent, "leaf", label)
+
+    def subtree_size(self):
+        return 1
+
+    def to_string(self):
+        return str(self.label)
+
+
+class NotationTree:
+    def __init__(self, root, tree_type=None):
+        self.root = root
+        # perform some quality check to verify that the set of nodes are valid
+        if not isinstance(self.root, Root):  # check if the root is a root node
+            raise TypeError("Parameter root must be of type Root")
+        # check if notes without childrens are leaves
+        for node in self.get_nodes():
+            if not node.has_children():
+                if not isinstance(node, LeafNode):
+                    raise TypeError("Input subtree (rooted by root) without leaves")
+        # check if leaves label is correctly formatted
+        for node in self.get_leaf_nodes():
+            if not isinstance(node.label, list):
+                raise TypeError(
+                    "Leaf label" + str(node) + "should contains a list of general notes"
+                )
+            else:
+                for gn in node.label:
+                    if len(gn) != 4:
+                        raise TypeError(
+                            "Leaf label" + str(node) + "not correctly formatted"
+                        )
+
+    def get_nodes(self, local_root=None):
+        if local_root is None:
+            local_root = self.root
+        return self._all_nodes(local_root, [])
+
+    def get_leaf_nodes(self, local_root=None):
+        if local_root is None:
+            local_root = self.root
+        return [
+            n for n in self.get_nodes(local_root=local_root) if isinstance(n, LeafNode)
+        ]
+
+    def _all_nodes(self, node, children_list):
+        children_list.append(node)  # add the current node
+        for c in node.children:
+            self._all_nodes(c, children_list)
+        return children_list
+
+    def __eq__(self, other):
+        if not isinstance(other, NotationTree):
+            return False
+        else:
+            return str(self) == str(other)
+
+    # Comment to reduce the dependencies from graphviz
+    def show(self, save=False, name=""):
+        """Print a graphical version of the tree"""
+        tree_repr = Digraph(comment="Notation Tree")
+        tree_repr.node("1", "root")  # the root
+        self._recursive_tree_display(self.root, tree_repr, "11")
+        if save:
+            tree_repr.render("test-output/" + str(self.tree_type) + name, view=True)
+        return tree_repr
+
+    def _recursive_tree_display(self, node, _tree, name):
+        """The actual recursive function called by show() """
+        for l in node.children:
+            if l.type == "leaf":  # if it is a leaf
+                _tree.node(name, m21u.simplify_label(l.label), shape="box")
+                _tree.edge(name[:-1], name, constraint="true")
+                name = name[:-1] + str(int(name[-1]) + 1)
+            else:
+                _tree.node(name, str(l.label))
+                # _tree.node(name, str(l.get_duration()))
+                _tree.edge(name[:-1], name, constraint="true")
+                self._recursive_tree_display(l, _tree, name + "1")
+                name = name[:-1] + str(int(name[-1]) + 1)
+
+    # def compute_internal_node_duration(self):
+    #     self.duration_initialized = True
+    #     self._recursive_compute_duration(self.root)
+
+    # def _recursive_compute_duration(self, local_root):
+    #     if local_root.get_type() == "note":
+    #         local_root.duration = Fraction(local_root.note.duration.quarterLength)
+    #         return local_root.duration
+    #     else:
+    #         local_root.duration = Fraction(
+    #             sum(
+    #                 [
+    #                     self._recursive_compute_duration(child)
+    #                     for child in local_root.get_children()
+    #                 ]
+    #             )
+    #         )
+    #         return local_root.duration
+
+    def to_string(self):
+        return self.root.to_string()
+
+    def __repr__(self):
+        return self.root.to_string()
+
+    def __str__(self):
+        return self.root.to_string()
+
+
+def ntfromm21(gn_list, tree_type):
+    # extract information from general note
+    if tree_type == "BT":
+        list_structure = [m21u.get_beams(gn) for gn in gn_list]
+    elif tree_type == "TT":
+        list_structure = [m21u.get_tuplets(gn) for gn in gn_list]
+        list_structure = correct_tuplet(
+            list_structure
+        )  # correct in case of XML import problems
+    else:
+        raise TypeError("Only TT and BT are allowed tree types")
+    leaf_label_list = [gn2label(gn) for gn in gn_list]
+    # set the tree
+    root = Root()
+    _recursive_tree_generation(list_structure, leaf_label_list, root, 0)
+    return NotationTree(root, tree_type=tree_type)
+
+
+def _recursive_tree_generation(list_structure, leaf_label_list, local_root, depth):
+    temp_int_node = None
+    start_index = None
+    stop_index = None
+
+    #############add some control in case of grace notes
+    for i, n in enumerate(list_structure):
+        if len(n[depth:]) == 0:  # no beaming
+            assert start_index is None
+            assert stop_index is None
+            LeafNode(local_root, [leaf_label_list[i]])
+        elif n[depth] == "partial":  # partial beaming
+            assert start_index is None
+            assert stop_index is None
+            # there are more levels of beam otherwise we would be on the previous case
+            temp_int_node = InternalNode(local_root, n[depth])
+            _recursive_tree_generation([n], temp_int_node, depth + 1)
+            temp_int_node = None
+        elif n.grouping[depth] == "start":  # start of a beam
+            assert start_index is None
+            assert stop_index is None
+            start_index = i
+        elif n.grouping[depth] == "continue":
+            assert start_index is not None
+            assert stop_index is None
+
+        elif n.grouping[depth] == "stop":
+            assert start_index is not None
+            assert stop_index is None
+            stop_index = i
+            temp_int_node = InternalNode(local_root, n[depth])
+            _recursive_tree_generation(
+                list_structure[start_index : stop_index + 1], temp_int_node, depth + 1
+            )
+            # reset the variables
+            temp_int_node = None
+            start_index = None
+            stop_index = None
+
+
+##########################################
+
+
+# self.root = Root()
+#         self.tree_type = tree_type
+#         if notelist is not None:
+#             if tree_type == "beams":
+#                 self.beamings = m21u.get_enhance_beamings(
+#                     self.note_list
+#                 )  # beams and type (type for note shorter than quarter notes)
+#                 # print(self.en_beam_list)
+#                 ties_list = get_ties(self.note_list)
+#                 # create a list of notes with ties and beaming information attached
+#                 self.annot_notes = []
+#                 # create a fake tuple info in order to assign names
+#                 self.tuple_info = get_enhance_beamings(self.note_list)
+#                 for i in range(len(self.tuple_info)):
+#                     for ii in range(len(self.tuple_info[i])):
+#                         self.tuple_info[i][ii] = ""
+#                 for i, n in enumerate(self.note_list):
+#                     self.annot_notes.append(
+#                         AnnotatedNote(
+#                             n,
+#                             ties_list[i],
+#                             self.en_beam_list[i],
+#                             tuple_info=self.tuple_info[i],
+#                         )
+#                     )
+#                 self._recursive_tree_generation(self.annot_notes, self.root, 0)
+#             elif tree_type == "tuplets":
+#                 self.tuplet_list = get_tuplets_type(
+#                     self.note_list
+#                 )  # corrected tuplets (with "start" and "continue")
+#                 ties_list = get_ties(self.note_list)
+#                 self.tuple_info = get_tuplets_info(self.note_list)
+#                 # create a list of notes with ties and tuplets information attached
+#                 self.annot_notes = []
+#                 for i, n in enumerate(self.note_list):
+#                     self.annot_notes.append(
+#                         AnnotatedNote(
+#                             n,
+#                             ties_list[i],
+#                             self.tuplet_list[i],
+#                             tuple_info=self.tuple_info[i],
+#                         )
+#                     )
+#                 self._recursive_tree_generation(self.annot_notes, self.root, 0)
+#             else:
+#                 raise TypeError("Invalid tree_type")
+
+
+# class AnnotatedNote:
+#     def __init__(self, note, is_tied, enhanced_beam_list, tuple_info=None):
+#         """
+#         A class with the purpose to extend music21 GeneralNote
+#         :param note: the music21 generalNote
+#         :param is_tied: boolean value that indicate if the note is tied to the previous
+#         :param enhanced_beam_list a list with beaming informations
+#         :tuple_info: a list with tuple info
+#         """
+#         self.note = note
+#         self.is_tied = is_tied
+#         self.grouping = enhanced_beam_list
+#         self.tuple_info = tuple_info
+
+#     def head_to_string(self):
+#         """
+#         Return the string representation of the notehead
+#         """
+#         # retrieve the notehead (or rest) type and dots
+#         out_string = generalNote_to_string_with_pitch(self.note)
+#         # now add the tie information
+#         if self.is_tied:
+#             out_string = "-" + out_string
+#         return out_string
+
+
+# class FullNoteTree:
+#     def __init__(self, measure, bar_reference=None, mei_id=None):
+#         self.beams_tree = NoteTree(measure=measure, tree_type="beams")
+#         self.tuplets_tree = NoteTree(measure=measure, tree_type="tuplets")
+#         self.en_beam_list = self.beams_tree.en_beam_list
+#         self.tuplets_list = self.tuplets_tree.tuplet_list
+#         self.bar_reference = bar_reference
+#         self.mei_id = mei_id
+
+#     def __eq__(self, other):
+#         if not isinstance(other, FullNoteTree):
+#             return False
+#         else:
+#             return (self.beams_tree == other.beams_tree) and (
+#                 self.tuplets_tree == other.tuplets_tree
+#             )
+
+#     def subtree_size(self):
+#         ######################to update with also the tuplet tree############
+#         ######################################################################
+#         return self.beams_tree.root.subtree_size()
+
+#     # Comment to reduce dependencies (from graphviz)
+#     def show(self, name=""):
+#         self.beams_tree.show(name=name)
+#         self.tuplets_tree.show(name=name)
+
+#     def __repr__(self):
+#         return str((str(self.beams_tree), str(self.tuplets_tree)))
+
+#     def __str__(self):
+#         return str((str(self.beams_tree), str(self.tuplets_tree)))
+
+
+# class MonophonicScoreTrees:
+#     def __init__(self, score):
+#         """
+#         Take a monophonic music21 score and store it a sequence of Full Trees
+#         Arguments:
+#             score {[music21 score]} a monofonic music21 score
+#         Raises:
+#             Exception -- [if there is more than 1 part]
+#             Exception -- [if the part has more than 1 voice]
+#         """
+#         self.measuresTrees = []  # contains a FullNoteTree for each measure
+#         if len(score.parts) != 1:  # check that the score have just one part
+#             raise Exception("The score have more than one part")
+#         for measure_index, measure in enumerate(
+#             score.parts[0].getElementsByClass("Measure")
+#         ):
+#             if (
+#                 len(measure.voices) == 0
+#             ):  # there is a single Voice ( == for the library there are no voices)
+#                 self.measuresTrees.append(
+#                     FullNoteTree(
+#                         measure,
+#                         bar_reference=measure_index,
+#                         mei_id=[note.id for note in get_notes(measure)],
+#                     )
+#                 )
+#             else:  # there are multiple voices (or an array with just one voice)
+#                 if len(measure.voices) != 1:
+#                     raise Exception("The part 1 has more than one voice")
+#                 for voice in measure.voices:
+#                     self.measuresTrees.append(
+#                         FullNoteTree(
+#                             voice,
+#                             bar_reference=measure_index,
+#                             mei_id=[note.id for note in get_notes(voice)],
+#                         )
+#                     )
+
+#     def __eq__(self, other):
+#         if not isinstance(other, MonophonicScoreTrees):
+#             return False
+#         else:
+#             if len(self.measuresTrees) != len(
+#                 other.measuresTrees
+#             ):  # chek if they have the same number of measures
+#                 return False
+#             for fnt in zip(
+#                 self.measuresTrees, other.measuresTrees
+#             ):  # check if FullNoteTree are the same for each bar
+#                 if fnt[0] != fnt[1]:
+#                     return False
+#             return True
+
+
+# class ScoreTrees:
+#     def __init__(self, score):
+#         """
+#         Take a music21 score and store it a sequence of Full Trees
+#         The hierarchy is "score -> parts ->measures -> voices -> notes"
+#         Arguments:
+#             score {[music21 score]} a music21 score
+#         """
+#         self.part_list = []  # contains a FullNoteTree for each measure
+#         print("#parts = {}".format(len(score.parts)))
+#         for part_index, part in enumerate(score.parts.stream()):
+#             print(
+#                 "#measure for part {} = {}".format(
+#                     part_index, len(part.getElementsByClass("Measure"))
+#                 )
+#             )
+#             tree_part = []  # tree part is a list of tree measures
+#             for measure_index, measure in enumerate(part.getElementsByClass("Measure")):
+#                 tree_measure = (
+#                     []
+#                 )  # measure is a list of voices (each represented by a FNT)
+#                 if (
+#                     len(measure.voices) == 0
+#                 ):  # there is a single Voice ( == for the library there are no voices)
+#                     print("Part {}, measure {}".format(part_index, measure_index))
+#                     tree_measure.append(
+#                         FullNoteTree(
+#                             measure,
+#                             bar_reference=measure_index,
+#                             mei_id=[note.id for note in get_notes(measure)],
+#                         )
+#                     )
+#                 else:  # there are multiple voices (or an array with just one voice)
+#                     for voice in measure.voices:
+#                         print("Part {}, measure {}".format(part_index, measure_index))
+#                         tree_measure.append(
+#                             FullNoteTree(
+#                                 voice,
+#                                 bar_reference=measure_index,
+#                                 mei_id=[note.id for note in get_notes(voice)],
+#                             )
+#                         )
+#                 tree_part.append(tree_measure)  # add the measures to the tree part
+#             self.part_list.append(tree_part)  # add the complete part to part_list
+
+#     # def __eq__(self,other):
+#     #     if not isinstance(other, MonophonicScoreTrees):
+#     #         return False
+#     #     else:
+#     #         if len(self.measuresTrees)!= len(other.measuresTrees): #check if they have the same number of measures
+#     #             return False
+#     #         for fnt in zip (self.measuresTrees,other.measuresTrees): #check if FullNoteTree are the same for each bar
+#     #             if fnt[0] != fnt[1]:
+#     #                 return False
+#     #         return True
+
+
+# class ScoreTrees_single_voice:
+#     def __init__(self, score):
+#         """
+#         Take a music21 score and store it a sequence of Full Trees
+#         The hierarchy is "score -> parts ->measures -> voices -> notes"
+#         Arguments:
+#             score {[music21 score]} a music21 score
+#         """
+#         self.part_list = []  # contains a FullNoteTree for each measure
+#         print("#parts = {}".format(len(score.parts)))
+#         for part_index, part in enumerate(score.parts.stream()):
+#             print(
+#                 "#measure for part {} = {}".format(
+#                     part_index, len(part.getElementsByClass("Measure"))
+#                 )
+#             )
+#             tree_part = (
+#                 []
+#             )  # tree part is a list of single voices measures (each represented by a FNT)
+#             for measure_index, measure in enumerate(part.getElementsByClass("Measure")):
+#                 if (
+#                     len(measure.voices) == 0
+#                 ):  # there is a single Voice ( == for the library there are no voices)
+#                     print("Part {}, measure {}".format(part_index, measure_index))
+#                     tree_part.append(
+#                         FullNoteTree(
+#                             measure,
+#                             bar_reference=measure_index,
+#                             mei_id=[note.id for note in get_notes(measure)],
+#                         )
+#                     )
+#                 else:  # there are multiple voices (or an array with just one voice)
+#                     for voice in measure.voices[0:1]:
+#                         print("Part {}, measure {}".format(part_index, measure_index))
+#                         tree_part.append(
+#                             FullNoteTree(
+#                                 voice,
+#                                 bar_reference=measure_index,
+#                                 mei_id=[note.id for note in get_notes(voice)],
+#                             )
+#                         )
+#             self.part_list.append(tree_part)  # add the complete part to part_list
+
