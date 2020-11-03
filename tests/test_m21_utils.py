@@ -111,14 +111,14 @@ def test_gn2label():
 def test_simplify_label1():
     n1 = m21.note.Note("E--5")
     n1.duration.quarterLength = 3
-    assert simplify_label([gn2label(n1)]) == "[E5bb]2*"
+    assert simplify_label(gn2label(n1)) == "[E5bb]2*"
 
 
 def test_simplify_label2():
     n1 = m21.note.Note("D4")
     n_grace = n1.getGrace()
     n2 = m21.note.Note("E#5")
-    assert simplify_label([gn2label(n) for n in [n_grace, n2]]) == "[D4]4gn,[E5#]4"
+    assert simplify_label(gn2label(n_grace)) == "[D4]4gn"
 
 
 def test_gn2label_musicxml1():
@@ -351,4 +351,60 @@ def test_correct_tuplet():
         [],
     ]
     assert correct_tuplet(tuplet) == expected
+
+
+def test_ntfromm211():
+    score = m21.converter.parse(str(Path("tests/test_musicxml/test_score1.musicxml")))
+    measures = score.parts[0].getElementsByClass("Measure")
+    # measure 0
+    gns_m0 = measures[0].getElementsByClass("GeneralNote")
+    nt = ntfromm21(gns_m0, "BT")
+    assert len(nt.get_nodes()) == 2
+    assert len(nt.get_leaf_nodes()) == 1
+    assert len(nt.root.children) == 1
+    # measure 1
+    gns_m0 = measures[1].getElementsByClass("GeneralNote")
+    nt = ntfromm21(gns_m0, "BT")
+    assert len(nt.get_nodes()) == 12
+    assert len(nt.get_leaf_nodes()) == 8
+    assert len(nt.root.children) == 4
+    # measure 2
+    gns_m0 = measures[2].getElementsByClass("GeneralNote")
+    nt_bt = ntfromm21(gns_m0, "BT")
+    nt_tt = ntfromm21(gns_m0, "TT")
+    assert len(nt_bt.get_nodes()) == 10
+    assert len(nt_bt.get_leaf_nodes()) == 6
+    assert len(nt_bt.root.children) == 4
+    assert len(nt_tt.get_nodes()) == 7
+    assert len(nt_tt.get_leaf_nodes()) == 6
+    assert len(nt_tt.root.children) == 6
+    # measure 3
+    gns_m0 = measures[3].getElementsByClass("GeneralNote")
+    nt_bt = ntfromm21(gns_m0, "BT")
+    nt_tt = ntfromm21(gns_m0, "TT")
+    assert len(nt_bt.get_nodes()) == 11
+    assert len(nt_bt.get_leaf_nodes()) == 8
+    assert len(nt_bt.root.children) == 5
+    assert len(nt_tt.get_nodes()) == 11
+    assert len(nt_tt.get_leaf_nodes()) == 8
+    assert len(nt_tt.root.children) == 4
+
+
+def test_ntfromm212():
+    score = m21.converter.parse(str(Path("tests/test_musicxml/test_score2.musicxml")))
+    measures = score.parts[0].getElementsByClass("Measure")
+    # measure 3 (grace note)
+    gns_m3 = measures[3].getElementsByClass("GeneralNote")
+    nt_bt = ntfromm21(gns_m3, "BT")
+    nt_tt = ntfromm21(gns_m3, "TT")
+    assert len(nt_bt.get_nodes()) == 6
+    assert len(nt_bt.get_leaf_nodes()) == 4
+    assert len(nt_bt.root.children) == 4
+    assert len(nt_tt.get_nodes()) == 5
+    assert len(nt_tt.get_leaf_nodes()) == 4
+    assert len(nt_tt.root.children) == 4
+
+
+def test_linear_beaming_from_nt():
+    assert 1 == 2  # to complete
 

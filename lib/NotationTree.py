@@ -5,8 +5,6 @@ from fractions import Fraction
 # Digraph and the show() function are not useful for some application, so can be commented to reduce the dependencies
 from graphviz import Digraph
 
-from lib.m21utils import correct_tuplet, gn2label
-
 
 class Node:
     def __init__(self, parent, type, label=None):
@@ -63,12 +61,6 @@ class Node:
         else:
             return True
 
-    def _all_nodes(self, node, children_list):
-        for c in node.get_children_node():
-            self._all_nodes(c, children_list)
-        children_list.append(node)  # add the current node
-        return children_list
-
     def get_subtree_nodes(self):
         return self._all_nodes(self, [])
 
@@ -102,7 +94,6 @@ class Root(Node):
 class InternalNode(Node):
     def __init__(self, parent, label):
         Node.__init__(self, parent, "internal", label)
-        self.label = label
 
     def to_string(self):
         out_string = str(self.label)
@@ -133,21 +124,31 @@ class NotationTree:
                     raise TypeError("Input subtree (rooted by root) without leaves")
         # check if leaves label is correctly formatted
         for node in self.get_leaf_nodes():
-            if not isinstance(node.label, list):
-                raise TypeError(
-                    "Leaf label" + str(node) + "should contains a list of general notes"
-                )
-            else:
-                for gn in node.label:
-                    if len(gn) != 4:
-                        raise TypeError(
-                            "Leaf label" + str(node) + "not correctly formatted"
-                        )
+            if not isinstance(node.label, tuple):
+                raise TypeError("Leaf label" + str(node) + "should be a tuple")
+            if len(node.label) != 4:
+                raise TypeError("Leaf label" + str(node) + "not correctly formatted")
+            if not node.label[0] == "R":
+                keys = ["npp", "alt", "tie"]
+                for k in keys:
+                    for pitch in node.label[0]:
+                        if k not in pitch.keys():
+                            raise TypeError(
+                                "Pitches in leaf label"
+                                + str(node)
+                                + "not correctly formatted"
+                            )
 
     def get_nodes(self, local_root=None):
+        def _all_nodes(node, children_list):  # the recursive function
+            children_list.append(node)  # add the current node
+            for c in node.children:
+                _all_nodes(c, children_list)
+            return children_list
+
         if local_root is None:
             local_root = self.root
-        return self._all_nodes(local_root, [])
+        return _all_nodes(local_root, [])
 
     def get_leaf_nodes(self, local_root=None):
         if local_root is None:
@@ -156,11 +157,28 @@ class NotationTree:
             n for n in self.get_nodes(local_root=local_root) if isinstance(n, LeafNode)
         ]
 
-    def _all_nodes(self, node, children_list):
-        children_list.append(node)  # add the current node
-        for c in node.children:
-            self._all_nodes(c, children_list)
-        return children_list
+    def get_depth(self, node):
+        if node.type == "root":
+            return 0
+        else:  # iterative call
+            if not isinstance(node.parent, Node):  # and structure check
+                raise Exception("The parent of node", self, "has to be a Node")
+            else:
+                return 1 + self.get_depth(node.parent)
+
+    def get_ancestors(self, node):
+        return self._get_ancestors(node)[1:]  # remove the node itself
+
+    def _get_ancestors(self, node):
+        if node.type == "root":
+            return [node]
+        else:  # recursive call
+            if not isinstance(node.parent, Node):  # and structure check
+                raise Exception("The parent of node", self, "has to be a Node")
+            else:
+                out = [node]
+                out.extend(self._get_ancestors(node.parent))
+                return out
 
     def __eq__(self, other):
         if not isinstance(other, NotationTree):
@@ -172,7 +190,7 @@ class NotationTree:
     def show(self, save=False, name=""):
         """Print a graphical version of the tree"""
         tree_repr = Digraph(comment="Notation Tree")
-        tree_repr.node("1", "root")  # the root
+        tree_repr.node("1", "")  # the root
         self._recursive_tree_display(self.root, tree_repr, "11")
         if save:
             tree_repr.render("test-output/" + str(self.tree_type) + name, view=True)
@@ -192,24 +210,27 @@ class NotationTree:
                 self._recursive_tree_display(l, _tree, name + "1")
                 name = name[:-1] + str(int(name[-1]) + 1)
 
-    # def compute_internal_node_duration(self):
-    #     self.duration_initialized = True
-    #     self._recursive_compute_duration(self.root)
+    def get_lca(self, node1, node2):
+        """get the lower common ancestor of two input nodes
 
-    # def _recursive_compute_duration(self, local_root):
-    #     if local_root.get_type() == "note":
-    #         local_root.duration = Fraction(local_root.note.duration.quarterLength)
-    #         return local_root.duration
-    #     else:
-    #         local_root.duration = Fraction(
-    #             sum(
-    #                 [
-    #                     self._recursive_compute_duration(child)
-    #                     for child in local_root.get_children()
-    #                 ]
-    #             )
-    #         )
-    #         return local_root.duration
+        Args:
+            node1 ([Node]): the first node to consider
+            node2 ([Node]): the second node to consider
+        """
+        if (node1 not in self.get_nodes()) or (node2 not in self.get_nodes()):
+            raise Exception("Input nodes should belong to the Notation Tree")
+        if node1 is node2:
+            raise Exception("The two inputs must be distinct nodes")
+
+        def _get_lca(anc_list, node):
+            if id(node) in [id(n) for n in anc_list]:
+                return node
+            else:
+                return _get_lca(anc_list, node.parent)
+
+        node1_anc = self.get_ancestors(node1)
+        node1_anc.append(node1)  # in node 1 is directly an ancestor of node2
+        return _get_lca(node1_anc, node2)
 
     def to_string(self):
         return self.root.to_string()
@@ -219,64 +240,6 @@ class NotationTree:
 
     def __str__(self):
         return self.root.to_string()
-
-
-def ntfromm21(gn_list, tree_type):
-    # extract information from general note
-    if tree_type == "BT":
-        list_structure = [m21u.get_beams(gn) for gn in gn_list]
-    elif tree_type == "TT":
-        list_structure = [m21u.get_tuplets(gn) for gn in gn_list]
-        list_structure = correct_tuplet(
-            list_structure
-        )  # correct in case of XML import problems
-    else:
-        raise TypeError("Only TT and BT are allowed tree types")
-    leaf_label_list = [gn2label(gn) for gn in gn_list]
-    # set the tree
-    root = Root()
-    _recursive_tree_generation(list_structure, leaf_label_list, root, 0)
-    return NotationTree(root, tree_type=tree_type)
-
-
-def _recursive_tree_generation(list_structure, leaf_label_list, local_root, depth):
-    temp_int_node = None
-    start_index = None
-    stop_index = None
-
-    #############add some control in case of grace notes
-    for i, n in enumerate(list_structure):
-        if len(n[depth:]) == 0:  # no beaming
-            assert start_index is None
-            assert stop_index is None
-            LeafNode(local_root, [leaf_label_list[i]])
-        elif n[depth] == "partial":  # partial beaming
-            assert start_index is None
-            assert stop_index is None
-            # there are more levels of beam otherwise we would be on the previous case
-            temp_int_node = InternalNode(local_root, n[depth])
-            _recursive_tree_generation([n], temp_int_node, depth + 1)
-            temp_int_node = None
-        elif n.grouping[depth] == "start":  # start of a beam
-            assert start_index is None
-            assert stop_index is None
-            start_index = i
-        elif n.grouping[depth] == "continue":
-            assert start_index is not None
-            assert stop_index is None
-
-        elif n.grouping[depth] == "stop":
-            assert start_index is not None
-            assert stop_index is None
-            stop_index = i
-            temp_int_node = InternalNode(local_root, n[depth])
-            _recursive_tree_generation(
-                list_structure[start_index : stop_index + 1], temp_int_node, depth + 1
-            )
-            # reset the variables
-            temp_int_node = None
-            start_index = None
-            stop_index = None
 
 
 ##########################################

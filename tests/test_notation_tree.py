@@ -40,26 +40,20 @@ def test_notationtree1():
     n1.duration.quarterLength = 3
     n2 = m21.note.Note("D4")
     root = Root()
-    node1 = InternalNode(root, True)
-    node3 = LeafNode(node1, [gn2label(gn) for gn in [n1]])
-    node4 = LeafNode(node1, [gn2label(gn) for gn in [n2]])
+    node1 = InternalNode(root, "")
+    node3 = LeafNode(node1, gn2label(n1))
+    node4 = LeafNode(node1, gn2label(n2))
     nt1 = NotationTree(root, tree_type="beaming")
     assert nt1.get_leaf_nodes() == [node3, node4]
     assert nt1.get_nodes(local_root=node1) == [node1, node3, node4]
     assert nt1.get_nodes() == [root, node1, node3, node4]
+    assert nt1.get_depth(root) == 0
+    assert nt1.get_depth(node1) == 1
+    assert nt1.get_depth(node3) == 2
+    assert nt1.get_ancestors(root) == []
+    assert nt1.get_ancestors(node4) == [node1, root]
+    assert nt1.get_lca(node3, node4) == node1
+    assert nt1.get_lca(node4, node3) == node1
+    assert nt1.get_lca(root, node4) == root
+    assert nt1.get_lca(node4, root) == root
 
-
-def test_ntfromm21():
-    score = m21.converter.parse(str(Path("tests/test_musicxml/test_score1.musicxml")))
-    measures = score.parts[0].getElementsByClass("Measure")
-    # measure 0
-    gns_m0 = measures[0].getElementsByClass("GeneralNote")
-    label_gns_m0 = [gn2label(gn) for gn in gns_m0]
-    expected_label_gns_m0 = [([{"npp": "G4", "alt": None, "tie": False}], 1, 0, False)]
-    nt = ntfromm21(gns_m0, "BT")
-    assert len(nt.get_nodes()) == 2
-    assert len(nt.get_leaf_nodes()) == 1
-
-
-######THings to do: every leaf accept only one general note. Grace notes are saved as different nodes!!
-# Need to reformat many parts of the code

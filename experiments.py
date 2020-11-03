@@ -3,14 +3,19 @@ import music21 as m21
 from pathlib import Path
 from lib.m21utils import *
 from lib.NotationTree import *
+import importlib
 
-score = m21.converter.parse(str(Path("tests/test_musicxml/test_score1.musicxml")))
-measures = score.parts[0].getElementsByClass("Measure")
-# measure 0
-gns_m0 = measures[0].getElementsByClass("GeneralNote")
-label_gns_m0 = [gn2label(gn) for gn in gns_m0]
-expected_label_gns_m0 = [([{"npp": "G4", "alt": None, "tie": False}], 1, 0, False)]
-nt = ntfromm21(gns_m0, "BT")
-nt.show()
+
+# %%
+n1 = m21.note.Note("E--5")
+n1.duration.quarterLength = 3
+n2 = m21.note.Note("D4")
+root = Root()
+node1 = InternalNode(root, True)
+node3 = LeafNode(node1, gn2label(n1))
+node4 = LeafNode(node1, gn2label(n2))
+nt1 = NotationTree(root, tree_type="beaming")
+
+nt1.get_lca(root, node4)
 
 # %%

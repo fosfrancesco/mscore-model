@@ -1,7 +1,12 @@
 from music21 import duration
 from fractions import Fraction
+import lib.NotationTree as nt
 import math
 import copy
+from itertools import islice
+
+
+## functions to extract descriptors from music21 to create Notation Trees
 
 
 def get_correct_accidental(acc):
@@ -156,18 +161,132 @@ def gracenote2string(gracenote):
 
 def simplify_label(label):
     # return a simpler label version
-    out = ""
-    for gn in label:
-        out += "["
-        for pitch in gn[0]:
+    if label[0] == "R":
+        out = "R"
+    else:
+        out = "["
+        for pitch in label[0]:
             out += "{}{}{},".format(
                 pitch["npp"], alteration2string(pitch["alt"]), tie2string(pitch["tie"]),
             )
         out = out[:-1]  # remove last comma
         out += "]"
-        out += "{}{}{},".format(gn[1], dot2string(gn[2]), gracenote2string(gn[3]))
-    out = out[:-1]  # remove last comma
+    out += "{}{}{}".format(label[1], dot2string(label[2]), gracenote2string(label[3]))
     return out
+
+
+def ntfromm21(gn_list, tree_type):
+    # extract information from general note
+    if tree_type == "BT":
+        list_structure = [get_beams(gn) for gn in gn_list]
+        internal_nodes_info = [
+            ["" for ee in e] for e in list_structure
+        ]  # defined only for similarity with TT
+    elif tree_type == "TT":
+        list_structure = [get_tuplets(gn) for gn in gn_list]
+        list_structure = correct_tuplet(
+            list_structure
+        )  # correct in case of XML import problems
+        internal_nodes_info = [get_tuplets_info(gn) for gn in gn_list]
+    else:
+        raise TypeError("Only TT and BT are allowed tree types")
+    leaf_label_list = [gn2label(gn) for gn in gn_list]
+    # set the tree
+    root = nt.Root()
+    _recursive_tree_generation(
+        list_structure, leaf_label_list, internal_nodes_info, root, 0
+    )
+    return nt.NotationTree(root, tree_type=tree_type)
+
+
+def _recursive_tree_generation(
+    list_structure, leaf_label_list, internal_nodes_info, local_root, depth
+):
+    temp_int_node = None
+    start_index = None
+    stop_index = None
+    for i, n in enumerate(list_structure):
+        if len(n[depth:]) == 0:  # no beaming/tuplets
+            assert start_index is None
+            assert stop_index is None
+            nt.LeafNode(local_root, leaf_label_list[i])
+        elif n[depth] == "partial":  # partial beaming (only for BTs)
+            assert start_index is None
+            assert stop_index is None
+            # there are more levels of beam otherwise we would be on the previous case
+            temp_int_node = nt.InternalNode(local_root, internal_nodes_info[i][depth])
+            _recursive_tree_generation(
+                [n],
+                [leaf_label_list[i]],
+                [internal_nodes_info[i]],
+                temp_int_node,
+                depth + 1,
+            )
+            temp_int_node = None
+        elif n[depth] == "start":  # start of a beam/tuplet
+            assert start_index is None
+            assert stop_index is None
+            start_index = i
+        elif n[depth] == "continue":
+            assert start_index is not None
+            assert stop_index is None
+        elif n[depth] == "stop":
+            assert start_index is not None
+            assert stop_index is None
+            stop_index = i
+            temp_int_node = nt.InternalNode(local_root, internal_nodes_info[i][depth])
+            _recursive_tree_generation(
+                list_structure[start_index : stop_index + 1],
+                leaf_label_list[start_index : stop_index + 1],
+                internal_nodes_info[start_index : stop_index + 1],
+                temp_int_node,
+                depth + 1,
+            )
+            # reset the variables
+            temp_int_node = None
+            start_index = None
+            stop_index = None
+
+
+def get_tuplets_info(gn):
+    """create a list with the string that is on the tuplet bracket"""
+    tuple_info = []
+    for t in gn.duration.tuplets:
+        if (
+            t.tupletNormalShow == "number" or t.tupletNormalShow == "both"
+        ):  # if there is a notation like "2:3"
+            new_info = str(t.numberNotesActual) + ":" + str(t.numberNotesNormal)
+        else:  # just a number for the tuplets
+            new_info = str(t.numberNotesActual)
+        # if the brackets are drown explicitly, add B
+        if t.bracket:
+            new_info = new_info + "B"
+        tuple_info.append(new_info)
+    return tuple_info
+
+
+## functions to extract descriptors from Notation Trees to create music21
+
+
+def linear_beamings_from_nt(nt):
+    leaves = nt.get_leaf_nodes()
+    # find the leaves depths in the tree
+    leaves_depths = [nt.get_depth(leaf) for leaf in leaves]
+    # find the connections between 2 adjacent leaves
+    leaves_connection = [nt.get_lca(n1, n2) for n1, n2 in window(leaves)]
+    # to complete...
+
+
+def window(seq, n=2):
+    "Returns a sliding window (of width n) over data from the iterable"
+    "   s -> (s0,s1,...s[n-1]), (s1,s2,...,sn), ...                   "
+    it = iter(seq)
+    result = tuple(islice(it, n))
+    if len(result) == n:
+        yield result
+    for elem in it:
+        result = result[1:] + (elem,)
+        yield result
 
 
 ########################### old functions to check
@@ -196,47 +315,4 @@ def get_norm_durations(note_list):
     if sum(dur_list) == 0:
         raise ValueError("It's not possible to normalize the durations if the sum is 0")
     return [d / sum(dur_list) for d in dur_list]  # normalize the duration
-
-
-def get_tuplets_info(note_list):
-    """create a list with the string that is on the tuplet bracket"""
-    str_list = []
-    for n in note_list:
-        tuple_info_list_for_note = []
-        for t in n.duration.tuplets:
-            if (
-                t.tupletNormalShow == "number" or t.tupletNormalShow == "both"
-            ):  # if there is a notation like "2:3"
-                new_info = str(t.numberNotesActual) + ":" + str(t.numberNotesNormal)
-            else:  # just a number for the tuplets
-                new_info = str(t.numberNotesActual)
-            # if the brackets are drown explicitly, add B
-            if t.bracket:
-                new_info = new_info + "B"
-            tuple_info_list_for_note.append(new_info)
-        str_list.append(tuple_info_list_for_note)
-    return str_list
-
-
-# # now correct the missing of "start" and add "continue" for clarity
-#     max_tupl_len = max([len(tuplets_list)])
-#     for ii in range(max_tupl_len):
-#         start_index = None
-#         stop_index = None
-#         for i, note_tuple in enumerate(tuplets_list):
-#             if len(note_tuple) > ii:
-#                 if note_tuple[ii] == "start":
-#                     assert start_index is None
-#                     start_index = ii
-#                 elif note_tuple[ii] is None:
-#                     if start_index is None:
-#                         start_index = ii
-#                         new_tuplets_list[i][ii] = "start"
-#                     else:
-#                         new_tuplets_list[i][ii] = "continue"
-#                 elif note_tuple[ii] == "stop":
-#                     start_index = None
-#                 else:
-#                     raise TypeError("Invalid tuplet type")
-#     return new_tuplets_list
 
