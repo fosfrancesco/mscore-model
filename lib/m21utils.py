@@ -127,6 +127,37 @@ def correct_tuplet(tuplets_list):
     return new_tuplets_list
 
 
+def m21_2_seq_struct(gn_list, struct_type):
+    """Generate a sequential representation of the structure (beamings and tuplets) from the general notes in a single measure (and a single voice)
+    The function gives two outputs: seq_structure and internal_nodes info.
+    The latter contains the tuplet numbers, but it is still present for beamings as empty list of lists
+
+    Args:
+        gn_list (list of generalNotes): a list of music21 general notes in a measure (and a single voice)
+        struct_type (string): either "beamings" or "tuplets"
+
+    Raises:
+        TypeError: if struct_type is not "beamings" nor "tuplets"
+
+    Returns:
+        couple: (seq_structure, internal_nodes_info)
+    """
+    if struct_type == "beamings":
+        seq_structure = [get_beams(gn) for gn in gn_list]
+        internal_nodes_info = [
+            ["" for ee in e] for e in seq_structure
+        ]  # useless for beamings
+    elif struct_type == "tuplets":
+        seq_structure = [get_tuplets(gn) for gn in gn_list]
+        seq_structure = correct_tuplet(
+            seq_structure
+        )  # correct in case of XML import problems
+        internal_nodes_info = [get_tuplets_info(gn) for gn in gn_list]
+    else:
+        raise TypeError("Only beamings and tuplets are allowed types")
+    return seq_structure, internal_nodes_info
+
+
 def alteration2string(alt_number):
     """
     Return a text repr of accidentals
@@ -177,35 +208,23 @@ def simplify_label(label):
 
 def ntfromm21(gn_list, tree_type):
     # extract information from general note
-    if tree_type == "BT":
-        list_structure = [get_beams(gn) for gn in gn_list]
-        internal_nodes_info = [
-            ["" for ee in e] for e in list_structure
-        ]  # defined only for similarity with TT
-    elif tree_type == "TT":
-        list_structure = [get_tuplets(gn) for gn in gn_list]
-        list_structure = correct_tuplet(
-            list_structure
-        )  # correct in case of XML import problems
-        internal_nodes_info = [get_tuplets_info(gn) for gn in gn_list]
-    else:
-        raise TypeError("Only TT and BT are allowed tree types")
+    seq_structure, internal_nodes_info = m21_2_seq_struct(gn_list, tree_type)
     leaf_label_list = [gn2label(gn) for gn in gn_list]
     # set the tree
     root = nt.Root()
     _recursive_tree_generation(
-        list_structure, leaf_label_list, internal_nodes_info, root, 0
+        seq_structure, leaf_label_list, internal_nodes_info, root, 0
     )
     return nt.NotationTree(root, tree_type=tree_type)
 
 
 def _recursive_tree_generation(
-    list_structure, leaf_label_list, internal_nodes_info, local_root, depth
+    seq_structure, leaf_label_list, internal_nodes_info, local_root, depth
 ):
     temp_int_node = None
     start_index = None
     stop_index = None
-    for i, n in enumerate(list_structure):
+    for i, n in enumerate(seq_structure):
         if len(n[depth:]) == 0:  # no beaming/tuplets
             assert start_index is None
             assert stop_index is None
@@ -236,7 +255,7 @@ def _recursive_tree_generation(
             stop_index = i
             temp_int_node = nt.InternalNode(local_root, internal_nodes_info[i][depth])
             _recursive_tree_generation(
-                list_structure[start_index : stop_index + 1],
+                seq_structure[start_index : stop_index + 1],
                 leaf_label_list[start_index : stop_index + 1],
                 internal_nodes_info[start_index : stop_index + 1],
                 temp_int_node,
@@ -268,13 +287,72 @@ def get_tuplets_info(gn):
 ## functions to extract descriptors from Notation Trees to create music21
 
 
-def linear_beamings_from_nt(nt):
+def nt2inter_gn_groupings(nt):
+    leaves = nt.get_leaf_nodes()
+    # find the connections between 2 adjacent leaves
+    leaves_connection = [nt.get_lca(n1, n2) for n1, n2 in window(leaves)]
+    return [nt.get_depth(n) for n in leaves_connection]
+
+
+def nt2over_gn_groupings(nt):
     leaves = nt.get_leaf_nodes()
     # find the leaves depths in the tree
     leaves_depths = [nt.get_depth(leaf) for leaf in leaves]
-    # find the connections between 2 adjacent leaves
-    leaves_connection = [nt.get_lca(n1, n2) for n1, n2 in window(leaves)]
-    # to complete...
+    return [d - 1 for d in leaves_depths]
+
+
+def nt2seq_structure(nt):
+    def _nt2seq_structure(node):
+        if node.type == "leaf":
+            return [[]]
+        else:
+            subtree_leaves = nt.get_leaf_nodes(local_root=node)
+            if len(subtree_leaves) > 1:
+                structure = (
+                    [["start"]]
+                    + [["continue"] for _ in subtree_leaves[1:-1]]
+                    + [["stop"]]
+                )
+            else:
+                structure = [["partial"]]
+
+            offset = 0
+            for child in node.children:
+                low_struct = _nt2seq_structure(child)
+                for s in low_struct:
+                    structure[offset].extend(s)
+                    offset += 1
+            return structure
+
+    seq_structure = [[] for _ in nt.get_leaf_nodes()]
+    offset = 0
+    for child in nt.root.children:
+        low_struct = _nt2seq_structure(child)
+        for s in low_struct:
+            seq_structure[offset].extend(s)
+            offset += 1
+
+    return seq_structure
+
+    # # fill the first element (only starts allowed)
+    # for cd in range(connection_depth[0]):
+    #     seq_structure[0][cd] = "start"
+    # # fill the elements in the middle
+    # max_conn_depth = max(connection_depth)
+    # for i, c in enumerate(connection_depth):
+    #     if i > 0:  # cases handled separately
+    #         for ii in range(c):
+    #             # fill according to the previous element
+    #             if ii + 1 == connection_depth[i - 1]:
+    #                 seq_structure[i][ii] = "continue"
+    #             elif ii + 1 > connection_depth[i - 1]:
+    #                 seq_structure[i][ii] = "start"
+    #         if c < connection_depth[i - 1]:
+    #             for ii in range(connection_depth[i - 1]):
+    #                 seq_structure[i][ii] = "stop"
+    # # fill the last element (only stops allowed)
+    # for cd in range(connection_depth[-1]):
+    #     seq_structure[-1][cd] = "stop"
 
 
 def window(seq, n=2):

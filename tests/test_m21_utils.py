@@ -358,20 +358,20 @@ def test_ntfromm211():
     measures = score.parts[0].getElementsByClass("Measure")
     # measure 0
     gns_m0 = measures[0].getElementsByClass("GeneralNote")
-    nt = ntfromm21(gns_m0, "BT")
+    nt = ntfromm21(gns_m0, "beamings")
     assert len(nt.get_nodes()) == 2
     assert len(nt.get_leaf_nodes()) == 1
     assert len(nt.root.children) == 1
     # measure 1
     gns_m0 = measures[1].getElementsByClass("GeneralNote")
-    nt = ntfromm21(gns_m0, "BT")
+    nt = ntfromm21(gns_m0, "beamings")
     assert len(nt.get_nodes()) == 12
     assert len(nt.get_leaf_nodes()) == 8
     assert len(nt.root.children) == 4
     # measure 2
     gns_m0 = measures[2].getElementsByClass("GeneralNote")
-    nt_bt = ntfromm21(gns_m0, "BT")
-    nt_tt = ntfromm21(gns_m0, "TT")
+    nt_bt = ntfromm21(gns_m0, "beamings")
+    nt_tt = ntfromm21(gns_m0, "tuplets")
     assert len(nt_bt.get_nodes()) == 10
     assert len(nt_bt.get_leaf_nodes()) == 6
     assert len(nt_bt.root.children) == 4
@@ -380,8 +380,8 @@ def test_ntfromm211():
     assert len(nt_tt.root.children) == 6
     # measure 3
     gns_m0 = measures[3].getElementsByClass("GeneralNote")
-    nt_bt = ntfromm21(gns_m0, "BT")
-    nt_tt = ntfromm21(gns_m0, "TT")
+    nt_bt = ntfromm21(gns_m0, "beamings")
+    nt_tt = ntfromm21(gns_m0, "tuplets")
     assert len(nt_bt.get_nodes()) == 11
     assert len(nt_bt.get_leaf_nodes()) == 8
     assert len(nt_bt.root.children) == 5
@@ -395,8 +395,8 @@ def test_ntfromm212():
     measures = score.parts[0].getElementsByClass("Measure")
     # measure 3 (grace note)
     gns_m3 = measures[3].getElementsByClass("GeneralNote")
-    nt_bt = ntfromm21(gns_m3, "BT")
-    nt_tt = ntfromm21(gns_m3, "TT")
+    nt_bt = ntfromm21(gns_m3, "beamings")
+    nt_tt = ntfromm21(gns_m3, "tuplets")
     assert len(nt_bt.get_nodes()) == 6
     assert len(nt_bt.get_leaf_nodes()) == 4
     assert len(nt_bt.root.children) == 4
@@ -406,5 +406,12 @@ def test_ntfromm212():
 
 
 def test_linear_beaming_from_nt():
-    assert 1 == 2  # to complete
+    score = m21.converter.parse(str(Path("tests/test_musicxml/test_score1.musicxml")))
+    measures = score.parts[0].getElementsByClass("Measure")
+    for m in measures:
+        gns = m.getElementsByClass("GeneralNote")
+        bt = ntfromm21(gns, "beamings")
+        tt = ntfromm21(gns, "tuplets")
+        assert m21_2_seq_struct(gns, "beamings")[0] == nt2seq_structure(bt)
+        assert m21_2_seq_struct(gns, "tuplets")[0] == nt2seq_structure(tt)
 
