@@ -9,7 +9,8 @@ from itertools import islice
 ## functions to extract descriptors from music21 to create Notation Trees
 
 
-def get_correct_accidental(acc):
+def get_accidental_number(acc):
+    """Get an integer from a music21 accidental (e.g. # is +1 and bb is -2)."""
     if acc is None:
         return None
     else:
@@ -17,6 +18,7 @@ def get_correct_accidental(acc):
 
 
 def get_type_number(gn):
+    """Get the music21 type number for a generalnote (and correct an MusicXML import problem by setting a default)."""
     if is_grace(gn) and gn.duration.type == "zero":
         # because the MusicXML import seems bugged for grace notes, and set duration 0. Default 8 in this case
         return 8
@@ -25,8 +27,18 @@ def get_type_number(gn):
 
 
 def get_note_head(gn):
-    # Get a number equivalent to the note head, e.g. 4,2,1. Shorter durations are not visible in the head
-    # Rests are considered as notes for simplicity, i.e. there is not type 8, even if it exist a different head symbol for rests
+    """Get a number encoding the note-head.
+    
+    A note-head is encoded as an integer, where 4,2,1 encode respectively a quarter note, a half note and a whole note.
+    Shorter durations are not encoded in the head (but in beamings and tuplets).
+    Rests are considered as notes for simplicity, i.e. there is not type 8, even if it exist a different head symbol for rests.
+
+    Args:
+        gn (GeneralNote): a music21 general note
+
+    Returns:
+        int: the integer encoding the note-head
+    """
     type_number = get_type_number(gn)
     if type_number >= 4:
         return 4
@@ -35,7 +47,7 @@ def get_note_head(gn):
 
 
 def is_tied(note):
-    # return True if a note is tied with the previous one
+    """Get a boolean from a general note saying if it is tied to the previous gnote."""
     if note.tie is not None and (
         note.tie.type == "stop" or note.tie.type == "continue"
     ):
@@ -45,6 +57,7 @@ def is_tied(note):
 
 
 def is_grace(gn):
+    """Get a boolean from a general note saying if it is a grace note."""
     if type(gn.duration) is duration.GraceDuration:
         return True
     else:
@@ -52,10 +65,22 @@ def is_grace(gn):
 
 
 def get_dots(gn):
+    """Get the number of dots from a general note."""
     return gn.duration.dots
 
 
-def gn2pitches_tuple(gn):
+def gn2pitches_list(gn):
+    """Get the list of pitches in a general note.
+
+    Pitches is a list where each element is a dictionary with keys: "npp" (string): natural pitch position (the pitch without accidentals), 
+    "acc" (int) : accidentals (e.g. # is +1 and bb is -1), "tie" (bool): if the gnote is tied to the precedent gnote.
+
+    Args:
+        gn (GeneralNote): the music21 general note.
+
+    Returns:
+        list: a list of dictionaries representing pitches.
+    """
     if gn.isRest:
         return "R"
     else:
@@ -65,7 +90,7 @@ def gn2pitches_tuple(gn):
                 out.append(
                     {
                         "npp": n.pitch.step + str(n.pitch.octave),
-                        "alt": get_correct_accidental(n.pitch.accidental),
+                        "acc": get_accidental_number(n.pitch.accidental),
                         "tie": is_tied(n),
                     }
                 )
@@ -74,17 +99,37 @@ def gn2pitches_tuple(gn):
             return [
                 {
                     "npp": gn.pitch.step + str(gn.pitch.octave),
-                    "alt": get_correct_accidental(gn.pitch.accidental),
+                    "acc": get_accidental_number(gn.pitch.accidental),
                     "tie": is_tied(gn),
                 }
             ]
 
 
 def gn2label(gn):
-    return (gn2pitches_tuple(gn), get_note_head(gn), get_dots(gn), is_grace(gn))
+    """Get a label that uniquely identify a general note (not considering tuplets or beamings).
+
+    The label is a tuple of length 4 that contains: pitches (list), note-head (integer), dots (integer) and grace-note (bool).
+
+    Args:
+        gn (Generalnote): the music21 general note (e.g. note, rest or chord).
+
+    Returns:
+        tuple: the label.
+    """
+    return (gn2pitches_list(gn), get_note_head(gn), get_dots(gn), is_grace(gn))
 
 
 def get_beams(gn):
+    """Return the (part of) beamings on top of a general note.
+
+    The beamings are expressed as a list of strings "start", "continue" and "stop.
+
+    Args:
+        gn (GeneralNote): the music21 general note (e.g. note, rest or chord).
+
+    Returns:
+        list: the list of beamings.
+    """
     beam_list = []
     if not gn.isRest:
         beam_list.extend(gn.beams.getTypes())
@@ -97,18 +142,41 @@ def get_beams(gn):
 
 
 def get_tuplets(gn):
+    """Return the (part of) tuplets on top of a general note.
+
+    The tuplets are expressed as a list of strings "start", "continue" and "stop.
+
+    Args:
+        gn (GeneralNote): the music21 general note (e.g. note, rest or chord).
+
+    Returns:
+        list: the list of tuplets.
+    """
     tuplets_list = [t.type for t in gn.duration.tuplets]
     # substitute None with continue
     return ["continue" if t is None else t for t in tuplets_list]
 
 
 def correct_tuplet(tuplets_list):
+    """Correct the sequential tuplet structure.
+
+    It seems that the import from musicxml in music21 set some "start" elements as None (that is then converted in "continue" in our representation).
+    This function handle this problem setting it back to "start".
+
+    Args:
+        tuplets_list (list): the sequential structure of tuplets
+
+    Raises:
+        TypeError: Other errors are presents in the input tuplet_list.
+
+    Returns:
+        list: a corrected sequential structure for tuplets.
+    """
     new_tuplets_list = copy.deepcopy(tuplets_list)
     # correct the wrong xml import where some start are substituted by None
     max_tupl_len = max([len(tuplets_list)])
     for ii in range(max_tupl_len):
         start_index = None
-        stop_index = None
         for i, note_tuple in enumerate(tuplets_list):
             if len(note_tuple) > ii:
                 if note_tuple[ii] == "start":
@@ -128,9 +196,10 @@ def correct_tuplet(tuplets_list):
 
 
 def m21_2_seq_struct(gn_list, struct_type):
-    """Generate a sequential representation of the structure (beamings and tuplets) from the general notes in a single measure (and a single voice)
-    The function gives two outputs: seq_structure and internal_nodes info.
-    The latter contains the tuplet numbers, but it is still present for beamings as empty list of lists
+    """Generate a sequential representation of the structure (beamings and tuplets) from the general notes in a single measure (and a single voice).
+
+    The function gives two outputs: seq_structure and internal_nodes info. 
+    The latter contains the tuplet numbers, but it is still present for beamings as empty list of lists.
 
     Args:
         gn_list (list of generalNotes): a list of music21 general notes in a measure (and a single voice)
@@ -158,21 +227,20 @@ def m21_2_seq_struct(gn_list, struct_type):
     return seq_structure, internal_nodes_info
 
 
-def alteration2string(alt_number):
-    """
-    Return a text repr of accidentals
-    """
-    if alt_number is None:
+def accidental2string(acc_number):
+    """Return a string repr of accidentals."""
+    if acc_number is None:
         return ""
-    elif alt_number > 0:
-        return "#" * int(alt_number)
-    elif alt_number < 0:
-        return "b" * int(abs(alt_number))
+    elif acc_number > 0:
+        return "#" * int(acc_number)
+    elif acc_number < 0:
+        return "b" * int(abs(acc_number))
     else:
         return "n"
 
 
 def tie2string(tie):
+    """Return a string repr of a tie."""
     if tie:
         return "T"
     else:
@@ -180,10 +248,12 @@ def tie2string(tie):
 
 
 def dot2string(dot):
+    """Return a string repr of dots."""
     return "*" * int(dot)
 
 
 def gracenote2string(gracenote):
+    """Return a string repr of a gracenote."""
     if gracenote:
         return "gn"
     else:
@@ -191,6 +261,14 @@ def gracenote2string(gracenote):
 
 
 def simplify_label(label):
+    """Create a simple string representation of the notation tree leaf node labels for a better visualization.
+
+    Args:
+        label (tuple): the label of a leaf node in a notation tree
+
+    Returns:
+        string: a simple but still unique representation of the leaf
+    """
     # return a simpler label version
     if label[0] == "R":
         out = "R"
@@ -198,7 +276,7 @@ def simplify_label(label):
         out = "["
         for pitch in label[0]:
             out += "{}{}{},".format(
-                pitch["npp"], alteration2string(pitch["alt"]), tie2string(pitch["tie"]),
+                pitch["npp"], accidental2string(pitch["acc"]), tie2string(pitch["tie"]),
             )
         out = out[:-1]  # remove last comma
         out += "]"
@@ -206,7 +284,16 @@ def simplify_label(label):
     return out
 
 
-def ntfromm21(gn_list, tree_type):
+def m21_2_notationtree(gn_list, tree_type):
+    """Generate a notation tree from a list of music21 general notes corresponding to the gns in a voice in a measure.
+
+    Args:
+        gn_list (list): a list of music21 GeneralNote objects
+        tree_type (string): either "beamings" or "tuplets" 
+
+    Returns:
+        NotationTree : the notation tree (BT or TT)
+    """
     # extract information from general note
     seq_structure, internal_nodes_info = m21_2_seq_struct(gn_list, tree_type)
     leaf_label_list = [gn2label(gn) for gn in gn_list]
@@ -221,6 +308,7 @@ def ntfromm21(gn_list, tree_type):
 def _recursive_tree_generation(
     seq_structure, leaf_label_list, internal_nodes_info, local_root, depth
 ):
+    """Recursive function to generate the notation tree, called from m21_2_notationtree()."""
     temp_int_node = None
     start_index = None
     stop_index = None
@@ -268,7 +356,7 @@ def _recursive_tree_generation(
 
 
 def get_tuplets_info(gn):
-    """create a list with the string that is on the tuplet bracket"""
+    """Create a list with the string that is on the tuplet bracket."""
     tuple_info = []
     for t in gn.duration.tuplets:
         if (
@@ -288,6 +376,16 @@ def get_tuplets_info(gn):
 
 
 def nt2inter_gn_groupings(nt):
+    """Return the number of grouping ``between'' two adjacent notes.
+
+    For beamings trees this is the number of beams connecting two adjacent notes.
+
+    Args:
+        nt (NotationTree): A notation tree, either beaming tree or tuplet tree.
+
+    Returns:
+        list: A list of length [number_of_leaves - 1], with integers.
+    """
     leaves = nt.get_leaf_nodes()
     # find the connections between 2 adjacent leaves
     leaves_connection = [nt.get_lca(n1, n2) for n1, n2 in window(leaves)]
@@ -295,6 +393,16 @@ def nt2inter_gn_groupings(nt):
 
 
 def nt2over_gn_groupings(nt):
+    """Return the number of grouping ``over'' a note.
+
+    For beamings trees this is the number of beams over each note.
+
+    Args:
+        nt (NotationTree): A notation tree, either beaming tree or tuplet tree.
+
+    Returns:
+        list: A list of length [number_of_leaves], with integers.
+    """
     leaves = nt.get_leaf_nodes()
     # find the leaves depths in the tree
     leaves_depths = [nt.get_depth(leaf) for leaf in leaves]
@@ -302,6 +410,15 @@ def nt2over_gn_groupings(nt):
 
 
 def nt2seq_structure(nt):
+    """Create the sequential representation of groupings from a notation tree (hierarchical representation).
+
+    Args:
+        nt (NotationTree): A notation tree, either beaming tree or tuplet tree.
+
+    Returns:
+        list -- A list of length [number_of_leaves] in the nt, with "start","stop" and "continue" elements depending on the tree structure
+    """
+
     def _nt2seq_structure(node):
         if node.type == "leaf":
             return [[]]
@@ -334,30 +451,9 @@ def nt2seq_structure(nt):
 
     return seq_structure
 
-    # # fill the first element (only starts allowed)
-    # for cd in range(connection_depth[0]):
-    #     seq_structure[0][cd] = "start"
-    # # fill the elements in the middle
-    # max_conn_depth = max(connection_depth)
-    # for i, c in enumerate(connection_depth):
-    #     if i > 0:  # cases handled separately
-    #         for ii in range(c):
-    #             # fill according to the previous element
-    #             if ii + 1 == connection_depth[i - 1]:
-    #                 seq_structure[i][ii] = "continue"
-    #             elif ii + 1 > connection_depth[i - 1]:
-    #                 seq_structure[i][ii] = "start"
-    #         if c < connection_depth[i - 1]:
-    #             for ii in range(connection_depth[i - 1]):
-    #                 seq_structure[i][ii] = "stop"
-    # # fill the last element (only stops allowed)
-    # for cd in range(connection_depth[-1]):
-    #     seq_structure[-1][cd] = "stop"
-
 
 def window(seq, n=2):
-    "Returns a sliding window (of width n) over data from the iterable"
-    "   s -> (s0,s1,...s[n-1]), (s1,s2,...,sn), ...                   "
+    """Return a sliding window (of width n) over data."""
     it = iter(seq)
     result = tuple(islice(it, n))
     if len(result) == n:
@@ -384,13 +480,13 @@ def window(seq, n=2):
 #     return [n.duration.dots for n in note_list]
 
 
-def get_durations(note_list):
-    return [Fraction(n.duration.quarterLength) for n in note_list]
+# def get_durations(note_list):
+#     return [Fraction(n.duration.quarterLength) for n in note_list]
 
 
-def get_norm_durations(note_list):
-    dur_list = get_durations(note_list)
-    if sum(dur_list) == 0:
-        raise ValueError("It's not possible to normalize the durations if the sum is 0")
-    return [d / sum(dur_list) for d in dur_list]  # normalize the duration
+# def get_norm_durations(note_list):
+#     dur_list = get_durations(note_list)
+#     if sum(dur_list) == 0:
+#         raise ValueError("It's not possible to normalize the durations if the sum is 0")
+#     return [d / sum(dur_list) for d in dur_list]  # normalize the duration
 

@@ -14,13 +14,13 @@ def test_notenode1():
     root = Root()
     node1 = LeafNode(root, [gn2label(gn) for gn in [n_grace, n1]])
     assert node1.label == [
-        ([{"npp": "D4", "alt": None, "tie": False}], 4, 0, True),
-        ([{"npp": "E5", "alt": -2, "tie": False}], 2, 1, False),
+        ([{"npp": "D4", "acc": None, "tie": False}], 4, 0, True),
+        ([{"npp": "E5", "acc": -2, "tie": False}], 2, 1, False),
     ]
     assert str(node1) == str(
         [
-            ([{"npp": "D4", "alt": None, "tie": False}], 4, 0, True),
-            ([{"npp": "E5", "alt": -2, "tie": False}], 2, 1, False),
+            ([{"npp": "D4", "acc": None, "tie": False}], 4, 0, True),
+            ([{"npp": "E5", "acc": -2, "tie": False}], 2, 1, False),
         ]
     )
 

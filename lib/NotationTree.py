@@ -7,11 +7,17 @@ from graphviz import Digraph
 
 
 class Node:
+    """The generic Tree node class."""
+
     def __init__(self, parent, type, label=None):
-        """
-        The generic Tree node class
-        :param parent: a Node instance
-        :param type: a String that can be "root", "internal", "leaf"
+        """Initialize a node.
+
+        This node is automatically added to the children list of the parent node.
+
+        Args:
+            parent (Node): the node parent
+            type (string): a string that can be "root", "internal", "leaf"
+            label ([object], optional): Some information contained in the node. Defaults to None.
         """
         self.type = type
         self.children = []  # each child is a Node
@@ -25,6 +31,7 @@ class Node:
             )  # add a child in the parent Node if the parent is not the root
 
     def add_child(self, child):
+        """Add a children to the node. Not really useful in standard utilisation, as a new node is added to the children list when it is created."""
         self.children.append(child)
 
     def __str__(self):
@@ -34,11 +41,8 @@ class Node:
         return self.to_string()
 
     def to_string(self):
-        """
-        Return the string representation of the subtree under the Node
-        This class is override in InternalNode and NoteNode to make the recursion stop
-        """
-        out_string = "("
+        """Return the string representation of the subtree under the Node. This class is overridden in LeafNode to make the recursion stop."""
+        out_string = str(self.label) + "("
         for c in self.children:
             out_string = out_string + c.to_string() + ","
         out_string = out_string[0:-1]  # remove the last comma
@@ -46,10 +50,7 @@ class Node:
         return out_string
 
     def subtree_size(self):
-        """
-        Return the size (number of nodes) of the subtree under the node (taking into accunt the node)
-        This class is override in NoteNode to make the recursion stop
-        """
+        """Return the number of nodes in the subtree under the node (counting also the node itself).This class is overridden in LeafNode to make the recursion stop."""
         size = 1
         for c in self.get_children():
             size += c.subtree_size()
@@ -63,9 +64,6 @@ class Node:
 
     def get_subtree_nodes(self):
         return self._all_nodes(self, [])
-
-    def get_note_nodes(self):
-        return [n for n in self.get_subtree_nodes() if n.get_type() == "note"]
 
     def atomic(self):
         return len(self.children) == 0
@@ -84,6 +82,8 @@ class Node:
 
 
 class Root(Node):
+    """The class for the Root node (e.g. without parent), extending Node."""
+
     def __init__(self):
         Node.__init__(self, None, "root")
 
@@ -92,15 +92,15 @@ class Root(Node):
 
 
 class InternalNode(Node):
+    """The class for the Internal node, extending Node."""
+
     def __init__(self, parent, label):
         Node.__init__(self, parent, "internal", label)
 
-    def to_string(self):
-        out_string = str(self.label)
-        return out_string + super(InternalNode, self).to_string()
-
 
 class LeafNode(Node):
+    """The class for the Leaf node, extending Node."""
+
     def __init__(self, parent, label):
         Node.__init__(self, parent, "leaf", label)
 
@@ -112,34 +112,59 @@ class LeafNode(Node):
 
 
 class NotationTree:
-    def __init__(self, root, tree_type=None):
+    """The class for the Notation Tree.
+
+    Two kinds of notation trees exist: beaming tree (BT) and tuplet tree (TT), 
+    encoding in the tree structure respectively the beaming and the tuplet information in a voice in  a measure.
+    The information about the notes are encoded in leaves and the same for the BT and the TT of a voice in a measure.
+    """
+
+    def __init__(self, root, tree_type=None, quality_check=True):
+        """Initialize the notation tree.
+
+        All the nodes must be already created and correctly linked to each other.
+        This class just give functions on top of that structure.
+
+        Args:
+            root (Node): the tree root.
+            tree_type (str, optional): either "beamings" or "tuplets". Defaults to None.
+            quality_check (bool, optional): True if we want to check the format of the tree. Set it to false to improve speed. Defaults to True.
+
+        Raises:
+            TypeError: if the node structure linked to root is not valid.
+        """
         self.root = root
-        # perform some quality check to verify that the set of nodes are valid
-        if not isinstance(self.root, Root):  # check if the root is a root node
-            raise TypeError("Parameter root must be of type Root")
-        # check if notes without childrens are leaves
-        for node in self.get_nodes():
-            if not node.has_children():
-                if not isinstance(node, LeafNode):
-                    raise TypeError("Input subtree (rooted by root) without leaves")
-        # check if leaves label is correctly formatted
-        for node in self.get_leaf_nodes():
-            if not isinstance(node.label, tuple):
-                raise TypeError("Leaf label" + str(node) + "should be a tuple")
-            if len(node.label) != 4:
-                raise TypeError("Leaf label" + str(node) + "not correctly formatted")
-            if not node.label[0] == "R":
-                keys = ["npp", "alt", "tie"]
-                for k in keys:
-                    for pitch in node.label[0]:
-                        if k not in pitch.keys():
-                            raise TypeError(
-                                "Pitches in leaf label"
-                                + str(node)
-                                + "not correctly formatted"
-                            )
+        if quality_check:
+            # perform some quality check to verify that the set of nodes are valid
+            if not isinstance(self.root, Root):  # check if the root is a root node
+                raise TypeError("Parameter root must be of type Root")
+            # check if notes without childrens are leaves
+            for node in self.get_nodes():
+                if not node.has_children():
+                    if not isinstance(node, LeafNode):
+                        raise TypeError("Input subtree (rooted by root) without leaves")
+            # check if leaves label is correctly formatted
+            for node in self.get_leaf_nodes():
+                if not isinstance(node.label, tuple):
+                    raise TypeError("Leaf label" + str(node) + "should be a tuple")
+                if len(node.label) != 4:
+                    raise TypeError(
+                        "Leaf label" + str(node) + "not correctly formatted"
+                    )
+                if not node.label[0] == "R":
+                    keys = ["npp", "acc", "tie"]
+                    for k in keys:
+                        for pitch in node.label[0]:
+                            if k not in pitch.keys():
+                                raise TypeError(
+                                    "Pitches in leaf label"
+                                    + str(node)
+                                    + "not correctly formatted"
+                                )
 
     def get_nodes(self, local_root=None):
+        """Return a list with all nodes in the tree."""
+
         def _all_nodes(node, children_list):  # the recursive function
             children_list.append(node)  # add the current node
             for c in node.children:
@@ -151,6 +176,7 @@ class NotationTree:
         return _all_nodes(local_root, [])
 
     def get_leaf_nodes(self, local_root=None):
+        """Return a list with all Leaf Nodes in the tree."""
         if local_root is None:
             local_root = self.root
         return [
@@ -158,6 +184,7 @@ class NotationTree:
         ]
 
     def get_depth(self, node):
+        """Return the depth of a node in the tree."""
         if node.type == "root":
             return 0
         else:  # iterative call
@@ -167,9 +194,11 @@ class NotationTree:
                 return 1 + self.get_depth(node.parent)
 
     def get_ancestors(self, node):
+        """Get a list of all the ancestors in the tree of a node."""
         return self._get_ancestors(node)[1:]  # remove the node itself
 
     def _get_ancestors(self, node):
+        """Recursive function called by get_ancestors."""
         if node.type == "root":
             return [node]
         else:  # recursive call
@@ -197,7 +226,7 @@ class NotationTree:
         return tree_repr
 
     def _recursive_tree_display(self, node, _tree, name):
-        """The actual recursive function called by show() """
+        """The recursive function called by show()."""
         for l in node.children:
             if l.type == "leaf":  # if it is a leaf
                 _tree.node(name, m21u.simplify_label(l.label), shape="box")
@@ -211,11 +240,15 @@ class NotationTree:
                 name = name[:-1] + str(int(name[-1]) + 1)
 
     def get_lca(self, node1, node2):
-        """get the lower common ancestor of two input nodes
+        """Get the lower common ancestor (lca) of two input nodes.
 
         Args:
-            node1 ([Node]): the first node to consider
-            node2 ([Node]): the second node to consider
+            node1 (Node): the first node to consider.
+            node2 (Node): the second node to consider.
+
+        Returns:
+            Node: the lca of the input nodes.
+
         """
         if (node1 not in self.get_nodes()) or (node2 not in self.get_nodes()):
             raise Exception("Input nodes should belong to the Notation Tree")
@@ -291,32 +324,6 @@ class NotationTree:
 #                 self._recursive_tree_generation(self.annot_notes, self.root, 0)
 #             else:
 #                 raise TypeError("Invalid tree_type")
-
-
-# class AnnotatedNote:
-#     def __init__(self, note, is_tied, enhanced_beam_list, tuple_info=None):
-#         """
-#         A class with the purpose to extend music21 GeneralNote
-#         :param note: the music21 generalNote
-#         :param is_tied: boolean value that indicate if the note is tied to the previous
-#         :param enhanced_beam_list a list with beaming informations
-#         :tuple_info: a list with tuple info
-#         """
-#         self.note = note
-#         self.is_tied = is_tied
-#         self.grouping = enhanced_beam_list
-#         self.tuple_info = tuple_info
-
-#     def head_to_string(self):
-#         """
-#         Return the string representation of the notehead
-#         """
-#         # retrieve the notehead (or rest) type and dots
-#         out_string = generalNote_to_string_with_pitch(self.note)
-#         # now add the tie information
-#         if self.is_tied:
-#             out_string = "-" + out_string
-#         return out_string
 
 
 # class FullNoteTree:
