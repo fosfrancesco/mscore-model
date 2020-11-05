@@ -1,4 +1,4 @@
-from music21 import duration
+import music21 as m21
 from fractions import Fraction
 import lib.NotationTree as nt
 import math
@@ -23,7 +23,7 @@ def get_type_number(gn):
         # because the MusicXML import seems bugged for grace notes, and set duration 0. Default 8 in this case
         return 8
     else:
-        return int(duration.convertTypeToNumber(gn.duration.type))
+        return int(m21.duration.convertTypeToNumber(gn.duration.type))
 
 
 def get_note_head(gn):
@@ -58,7 +58,7 @@ def is_tied(note):
 
 def is_grace(gn):
     """Get a boolean from a general note saying if it is a grace note."""
-    if type(gn.duration) is duration.GraceDuration:
+    if type(gn.duration) is m21.duration.GraceDuration:
         return True
     else:
         return False
@@ -472,6 +472,34 @@ def nt2general_notes(bt, tt):
     beamings = nt2seq_structure(bt)[0]
     tuplets, tuplets_info = nt2seq_structure(tt)
     labels = [n.label for n in bt.get_leaf_nodes()]
+
+    gn_list = []
+
+    for i, l in enumerate(labels):
+        if l[0] == "R":  # rest
+            gn = m21.note.Rest()
+        elif len(l[0]) == 1:  # note
+            gn = m21.note.Note(l[0][0]["npp"])
+            if not l[0][0]["acc"] is None:
+                acc = m21.pitch.Accidental(l[0][0]["acc"])
+                gn.pitch.accidental = acc
+        else:  # chord
+            gn = m21.chord.Chord([p["npp"] for p in l[0]])
+            for i, pitch in enumerate(l[0]):  # add accidentals
+                if not pitch["acc"] is None:
+                    acc = m21.pitch.Accidental(pitch["acc"])
+                    gn.pitches[i].accidental = acc
+        gn_list.append(gn)
+
+    # add ties
+
+    # add note-head
+
+    # add beamings
+
+    # add tuplets
+
+    return gn_list
 
 
 ########################### old functions to check
