@@ -5,23 +5,32 @@ from lib.m21utils import *
 from lib.NotationTree import *
 import importlib
 
+m21.environment.set(
+    "musescoreDirectPNGPath",
+    "/mnt/c/Program Files (x86)/MuseScore 2//bin/MuseScore.exe",
+)
+m21.environment.set(
+    "musicxmlPath", "/mnt/c/Program Files (x86)/MuseScore 2//bin/MuseScore.exe"
+)
+
+# us = m21.environment.UserSettings()
+# # us.create()
+# us["musescoreDirectPNGPath"] = "/usr/bin/musescore"
+# us["musicxmlPath"] = "/usr/bin/musescore"
 
 score = m21.converter.parse(str(Path("tests/test_musicxml/test_score1.musicxml")))
 measures = score.parts[0].getElementsByClass("Measure")
-# measure 1
-gns_m1 = measures[1].getElementsByClass("GeneralNote")
-nt = m21_2_notationtree(gns_m1, "beamings")
+for i, m in enumerate(measures):
+    print("measure", i)
+    gns = m.getElementsByClass("GeneralNote")
+    bt = m21_2_notationtree(gns, "beamings")
+    tt = m21_2_notationtree(gns, "tuplets")
+    print(m21_2_seq_struct(gns, "beamings")[1])
+    print(nt2seq_structure(bt)[1])
+    # assert m21_2_seq_struct(gns, "tuplets")[1] == nt2seq_structure(tt)[1]
 
-print(m21_2_seq_struct(gns_m1, "beamings")[0])
-print(m21_2_seq_struct(gns_m1, "beamings")[1])
-leaves = nt.get_leaf_nodes()
-print([nt.get_depth(leaf) for leaf in leaves])
-leaves_connection = [nt.get_lca(n1, n2) for n1, n2 in window(leaves)]
-print([nt.get_depth(n) for n in leaves_connection])
-
-print("_________________")
-print(nt2seq_structure(nt))
-
+score = m21.corpus.parse("bach/bwv295")
+score.show()
 
 # %%
 a = []

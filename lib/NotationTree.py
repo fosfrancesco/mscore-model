@@ -1,6 +1,7 @@
 # from music21 import *
 import lib.m21utils as m21u
 from fractions import Fraction
+from pathlib import Path
 
 # Digraph and the show() function are not useful for some application, so can be commented to reduce the dependencies
 from graphviz import Digraph
@@ -62,9 +63,6 @@ class Node:
         else:
             return True
 
-    def get_subtree_nodes(self):
-        return self._all_nodes(self, [])
-
     def atomic(self):
         return len(self.children) == 0
 
@@ -111,56 +109,11 @@ class LeafNode(Node):
         return str(self.label)
 
 
-class NotationTree:
-    """The class for the Notation Tree.
+class Tree:
+    """The generic class for trees"""
 
-    Two kinds of notation trees exist: beaming tree (BT) and tuplet tree (TT), 
-    encoding in the tree structure respectively the beaming and the tuplet information in a voice in  a measure.
-    The information about the notes are encoded in leaves and the same for the BT and the TT of a voice in a measure.
-    """
-
-    def __init__(self, root, tree_type=None, quality_check=True):
-        """Initialize the notation tree.
-
-        All the nodes must be already created and correctly linked to each other.
-        This class just give functions on top of that structure.
-
-        Args:
-            root (Node): the tree root.
-            tree_type (str, optional): either "beamings" or "tuplets". Defaults to None.
-            quality_check (bool, optional): True if we want to check the format of the tree. Set it to false to improve speed. Defaults to True.
-
-        Raises:
-            TypeError: if the node structure linked to root is not valid.
-        """
+    def __init__(self, root):
         self.root = root
-        if quality_check:
-            # perform some quality check to verify that the set of nodes are valid
-            if not isinstance(self.root, Root):  # check if the root is a root node
-                raise TypeError("Parameter root must be of type Root")
-            # check if notes without childrens are leaves
-            for node in self.get_nodes():
-                if not node.has_children():
-                    if not isinstance(node, LeafNode):
-                        raise TypeError("Input subtree (rooted by root) without leaves")
-            # check if leaves label is correctly formatted
-            for node in self.get_leaf_nodes():
-                if not isinstance(node.label, tuple):
-                    raise TypeError("Leaf label" + str(node) + "should be a tuple")
-                if len(node.label) != 4:
-                    raise TypeError(
-                        "Leaf label" + str(node) + "not correctly formatted"
-                    )
-                if not node.label[0] == "R":
-                    keys = ["npp", "acc", "tie"]
-                    for k in keys:
-                        for pitch in node.label[0]:
-                            if k not in pitch.keys():
-                                raise TypeError(
-                                    "Pitches in leaf label"
-                                    + str(node)
-                                    + "not correctly formatted"
-                                )
 
     def get_nodes(self, local_root=None):
         """Return a list with all nodes in the tree."""
@@ -210,34 +163,10 @@ class NotationTree:
                 return out
 
     def __eq__(self, other):
-        if not isinstance(other, NotationTree):
+        if not isinstance(other, type(self)):
             return False
         else:
             return str(self) == str(other)
-
-    # Comment to reduce the dependencies from graphviz
-    def show(self, save=False, name=""):
-        """Print a graphical version of the tree"""
-        tree_repr = Digraph(comment="Notation Tree")
-        tree_repr.node("1", "")  # the root
-        self._recursive_tree_display(self.root, tree_repr, "11")
-        if save:
-            tree_repr.render("test-output/" + str(self.tree_type) + name, view=True)
-        return tree_repr
-
-    def _recursive_tree_display(self, node, _tree, name):
-        """The recursive function called by show()."""
-        for l in node.children:
-            if l.type == "leaf":  # if it is a leaf
-                _tree.node(name, m21u.simplify_label(l.label), shape="box")
-                _tree.edge(name[:-1], name, constraint="true")
-                name = name[:-1] + str(int(name[-1]) + 1)
-            else:
-                _tree.node(name, str(l.label))
-                # _tree.node(name, str(l.get_duration()))
-                _tree.edge(name[:-1], name, constraint="true")
-                self._recursive_tree_display(l, _tree, name + "1")
-                name = name[:-1] + str(int(name[-1]) + 1)
 
     def get_lca(self, node1, node2):
         """Get the lower common ancestor (lca) of two input nodes.
@@ -273,6 +202,98 @@ class NotationTree:
 
     def __str__(self):
         return self.root.to_string()
+
+    # Comment to reduce the dependencies from graphviz
+    def show(self, save=False, name="tree", simplify_label=lambda x: x):
+        """Print a graphical version of the tree.
+
+        Args:
+            save (bool, optional): save the image as a file. Defaults to False.
+            name (str, optional): the file name. Defaults to "tree".
+            simplify_label (function, optional): a function to simplify the tree labels for a clear visualization. Defaults is a function that does nothing.
+
+        Returns:
+            Digraph: the digraph object
+        """
+        tree_repr = Digraph(comment="Tree")
+        tree_repr.node("1", "")  # the root
+        self._recursive_tree_display(self.root, tree_repr, "11", simplify_label)
+        if save:
+            tree_repr.render(str(Path("test-output", name)), view=True)
+        return tree_repr
+
+    def _recursive_tree_display(self, node, _tree, name, simplify_label):
+        """The recursive function called by show()."""
+        for l in node.children:
+            if l.type == "leaf":  # if it is a leaf
+                _tree.node(name, m21u.simplify_label(l.label), shape="box")
+                _tree.edge(name[:-1], name, constraint="true")
+                name = name[:-1] + str(int(name[-1]) + 1)
+            else:
+                _tree.node(name, str(l.label))
+                # _tree.node(name, str(l.get_duration()))
+                _tree.edge(name[:-1], name, constraint="true")
+                self._recursive_tree_display(l, _tree, name + "1", simplify_label)
+                name = name[:-1] + str(int(name[-1]) + 1)
+
+
+class NotationTree(Tree):
+    """The class for the Notation Tree.
+
+    Two kinds of notation trees exist: beaming tree (BT) and tuplet tree (TT), 
+    encoding in the tree structure respectively the beaming and the tuplet information in a voice in  a measure.
+    The information about the notes are encoded in leaves and the same for the BT and the TT of a voice in a measure.
+    """
+
+    def __init__(self, root, tree_type=None, quality_check=True):
+        """Initialize the notation tree.
+
+        All the nodes must be already created and correctly linked to each other.
+        This class just give functions on top of that structure.
+
+        Args:
+            root (Node): the tree root.
+            tree_type (str, optional): either "beamings" or "tuplets". Defaults to None.
+            quality_check (bool, optional): True if we want to check the format of the tree. Set it to false to improve speed. Defaults to True.
+
+        Raises:
+            TypeError: if the node structure linked to root is not valid.
+        """
+        Tree.__init__(self, root)
+        self.tree_type = tree_type
+        if quality_check:
+            # perform some quality check to verify that the set of nodes are valid
+            if not isinstance(self.root, Root):  # check if the root is a root node
+                raise TypeError("Parameter root must be of type Root")
+            # check if notes without childrens are leaves
+            for node in self.get_nodes():
+                if not node.has_children():
+                    if not isinstance(node, LeafNode):
+                        raise TypeError("Input subtree (rooted by root) without leaves")
+            # check if leaves label is correctly formatted
+            for node in self.get_leaf_nodes():
+                if not isinstance(node.label, tuple):
+                    raise TypeError("Leaf label" + str(node) + "should be a tuple")
+                if len(node.label) != 4:
+                    raise TypeError(
+                        "Leaf label" + str(node) + "not correctly formatted"
+                    )
+                if not node.label[0] == "R":
+                    keys = ["npp", "acc", "tie"]
+                    for k in keys:
+                        for pitch in node.label[0]:
+                            if k not in pitch.keys():
+                                raise TypeError(
+                                    "Pitches in leaf label"
+                                    + str(node)
+                                    + "not correctly formatted"
+                                )
+
+    def show(self, save=False, name="tree"):
+        tree_repr = Tree.show(
+            self, save=False, name="tree", simplify_label=m21u.simplify_label
+        )
+        return tree_repr
 
 
 ##########################################

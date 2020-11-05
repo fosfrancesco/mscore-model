@@ -209,11 +209,11 @@ def m21_2_seq_struct(gn_list, struct_type):
         TypeError: if struct_type is not "beamings" nor "tuplets"
 
     Returns:
-        couple: (seq_structure, internal_nodes_info)
+        couple: (seq_structure, grouping_info)
     """
     if struct_type == "beamings":
         seq_structure = [get_beams(gn) for gn in gn_list]
-        internal_nodes_info = [
+        grouping_info = [
             ["" for ee in e] for e in seq_structure
         ]  # useless for beamings
     elif struct_type == "tuplets":
@@ -221,10 +221,10 @@ def m21_2_seq_struct(gn_list, struct_type):
         seq_structure = correct_tuplet(
             seq_structure
         )  # correct in case of XML import problems
-        internal_nodes_info = [get_tuplets_info(gn) for gn in gn_list]
+        grouping_info = [get_tuplets_info(gn) for gn in gn_list]
     else:
         raise TypeError("Only beamings and tuplets are allowed types")
-    return seq_structure, internal_nodes_info
+    return seq_structure, grouping_info
 
 
 def accidental2string(acc_number):
@@ -295,18 +295,16 @@ def m21_2_notationtree(gn_list, tree_type):
         NotationTree : the notation tree (BT or TT)
     """
     # extract information from general note
-    seq_structure, internal_nodes_info = m21_2_seq_struct(gn_list, tree_type)
+    seq_structure, grouping_info = m21_2_seq_struct(gn_list, tree_type)
     leaf_label_list = [gn2label(gn) for gn in gn_list]
     # set the tree
     root = nt.Root()
-    _recursive_tree_generation(
-        seq_structure, leaf_label_list, internal_nodes_info, root, 0
-    )
+    _recursive_tree_generation(seq_structure, leaf_label_list, grouping_info, root, 0)
     return nt.NotationTree(root, tree_type=tree_type)
 
 
 def _recursive_tree_generation(
-    seq_structure, leaf_label_list, internal_nodes_info, local_root, depth
+    seq_structure, leaf_label_list, grouping_info, local_root, depth
 ):
     """Recursive function to generate the notation tree, called from m21_2_notationtree()."""
     temp_int_node = None
@@ -321,13 +319,9 @@ def _recursive_tree_generation(
             assert start_index is None
             assert stop_index is None
             # there are more levels of beam otherwise we would be on the previous case
-            temp_int_node = nt.InternalNode(local_root, internal_nodes_info[i][depth])
+            temp_int_node = nt.InternalNode(local_root, grouping_info[i][depth])
             _recursive_tree_generation(
-                [n],
-                [leaf_label_list[i]],
-                [internal_nodes_info[i]],
-                temp_int_node,
-                depth + 1,
+                [n], [leaf_label_list[i]], [grouping_info[i]], temp_int_node, depth + 1,
             )
             temp_int_node = None
         elif n[depth] == "start":  # start of a beam/tuplet
@@ -341,11 +335,11 @@ def _recursive_tree_generation(
             assert start_index is not None
             assert stop_index is None
             stop_index = i
-            temp_int_node = nt.InternalNode(local_root, internal_nodes_info[i][depth])
+            temp_int_node = nt.InternalNode(local_root, grouping_info[i][depth])
             _recursive_tree_generation(
                 seq_structure[start_index : stop_index + 1],
                 leaf_label_list[start_index : stop_index + 1],
-                internal_nodes_info[start_index : stop_index + 1],
+                grouping_info[start_index : stop_index + 1],
                 temp_int_node,
                 depth + 1,
             )
@@ -412,16 +406,22 @@ def nt2over_gn_groupings(nt):
 def nt2seq_structure(nt):
     """Create the sequential representation of groupings from a notation tree (hierarchical representation).
 
+    In particular the functions generates two outputs.
+    seq_structure : a nested list of length [number_of_leaves] in the nt, with "start","stop" and "continue" elements depending on the tree structure;
+    grouping_info : a nested list of length [number_of_leaves] with the grouping info.
+    The latter corresponds for tuplets to the tuplet name in the bracket (and B if the bracket is visible),
+    but it is computed also for beamings, as list of empty strings, to preserve the similarity.
+
     Args:
         nt (NotationTree): A notation tree, either beaming tree or tuplet tree.
 
     Returns:
-        list -- A list of length [number_of_leaves] in the nt, with "start","stop" and "continue" elements depending on the tree structure
+        couple: (seq_structure,grouping_info)
     """
 
     def _nt2seq_structure(node):
         if node.type == "leaf":
-            return [[]]
+            return [[]], [[]]
         else:
             subtree_leaves = nt.get_leaf_nodes(local_root=node)
             if len(subtree_leaves) > 1:
@@ -430,26 +430,31 @@ def nt2seq_structure(nt):
                     + [["continue"] for _ in subtree_leaves[1:-1]]
                     + [["stop"]]
                 )
+                info = [[str(node.label)] for _ in subtree_leaves]
             else:
                 structure = [["partial"]]
+                info = [[str(node.label)]]
 
             offset = 0
             for child in node.children:
-                low_struct = _nt2seq_structure(child)
-                for s in low_struct:
-                    structure[offset].extend(s)
+                low_struct, low_info = _nt2seq_structure(child)
+                for st, inf in zip(low_struct, low_info):
+                    structure[offset].extend(st)
+                    info[offset].extend(inf)
                     offset += 1
-            return structure
+            return structure, info
 
     seq_structure = [[] for _ in nt.get_leaf_nodes()]
+    grouping_info = [[] for _ in nt.get_leaf_nodes()]
     offset = 0
     for child in nt.root.children:
-        low_struct = _nt2seq_structure(child)
-        for s in low_struct:
-            seq_structure[offset].extend(s)
+        low_struct, low_info = _nt2seq_structure(child)
+        for st, inf in zip(low_struct, low_info):
+            seq_structure[offset].extend(st)
+            grouping_info[offset].extend(inf)
             offset += 1
 
-    return seq_structure
+    return seq_structure, grouping_info
 
 
 def window(seq, n=2):
@@ -461,6 +466,12 @@ def window(seq, n=2):
     for elem in it:
         result = result[1:] + (elem,)
         yield result
+
+
+def nt2general_notes(bt, tt):
+    beamings = nt2seq_structure(bt)[0]
+    tuplets, tuplets_info = nt2seq_structure(tt)
+    labels = [n.label for n in bt.get_leaf_nodes()]
 
 
 ########################### old functions to check

@@ -412,6 +412,8 @@ def test_linear_beaming_from_nt():
         gns = m.getElementsByClass("GeneralNote")
         bt = m21_2_notationtree(gns, "beamings")
         tt = m21_2_notationtree(gns, "tuplets")
-        assert m21_2_seq_struct(gns, "beamings")[0] == nt2seq_structure(bt)
-        assert m21_2_seq_struct(gns, "tuplets")[0] == nt2seq_structure(tt)
+        assert m21_2_seq_struct(gns, "beamings")[0] == nt2seq_structure(bt)[0]
+        assert m21_2_seq_struct(gns, "tuplets")[0] == nt2seq_structure(tt)[0]
+        assert m21_2_seq_struct(gns, "beamings")[1] == nt2seq_structure(bt)[1]
+        assert m21_2_seq_struct(gns, "tuplets")[1] == nt2seq_structure(tt)[1]
 
