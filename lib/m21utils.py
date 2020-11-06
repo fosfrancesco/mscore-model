@@ -1,6 +1,6 @@
 import music21 as m21
 from fractions import Fraction
-import lib.NotationTree as nt
+import lib.notation_tree as nt
 import math
 import copy
 from itertools import islice
@@ -469,6 +469,18 @@ def window(seq, n=2):
 
 
 def nt2general_notes(bt, tt):
+    """Generate a list of music21 generalNote from a couple (beaming tree, couple tree).
+
+    WARNING: the attribute tie cannot be correctly set on the first note. 
+    Remember to run the method set_ties() when the entire voice is ready.
+
+    Args:
+        bt (NotationTree): A notation tree of type "beamings"
+        tt (NotationTree): A notation tree of type "tuplets"
+
+    Returns:
+        list: a list of music21 GeneralNote
+    """
     beamings = nt2seq_structure(bt)[0]
     tuplets, tuplets_info = nt2seq_structure(tt)
     labels = [n.label for n in bt.get_leaf_nodes()]
@@ -489,17 +501,110 @@ def nt2general_notes(bt, tt):
                 if not pitch["acc"] is None:
                     acc = m21.pitch.Accidental(pitch["acc"])
                     gn.pitches[i].accidental = acc
+        # set the eventual grace note
+        if l[3]:
+            gn = gn.getGrace()
         gn_list.append(gn)
 
-    # add ties
+    # add duration type
+    for i, gn in enumerate(gn_list):
+        if (
+            labels[i][1] <= 2
+        ):  # if the note is half or whole, it depends just on note type
+            gn.duration.type = m21.duration.typeFromNumDict[labels[i][1]]
+        else:  # if note-head >= 4, duration type depends on beamings
+            gn.duration.type = m21.duration.typeFromNumDict[4 * (2 ** len(beamings[i]))]
 
-    # add note-head
+    # add dots
+    for i, gn in enumerate(gn_list):
+        gn.duration.dots = labels[i][2]
 
     # add beamings
+    for i, gn in enumerate(gn_list):
+        if not gn.isRest:  # rests do not have beams in m21
+            if (
+                not all(beamings[i]) == "partial"
+            ):  # this case is handled by note type only in m21
+                for beam in beamings[i]:
+                    gn.beams.append(beam)
 
     # add tuplets
+    for i, gn in enumerate(gn_list):
+        for ii, t in enumerate(tuplets[i]):
+            t = m21tuple_from_info(tuplets_info[i][ii])
+            # set the start and stop. Continue is None for m21 tuple and we don't need to set it
+            if labels[i][ii] != "continue":
+                t.type = tuplets[i][ii]
+            gn.duration.appendTuplet(t)
+
+    # add ties
+    # there is a problems because m21 require a tie "start" and "continue" and we only have tie "stop"
+    # we have to do this ideally when the entire score is complete
+    gn_list = set_ties(gn_list, labels)
 
     return gn_list
+
+
+def set_ties(gn_list, labels):
+    for i, gn in enumerate(gn_list):
+        if i > 0:  # can't set a stop on the first note
+            previous_notes_to_set = []
+            if gn.isRest:
+                pass  # no ties on rests
+            elif gn.isNote:
+                if labels[i][0][0]["tie"]:
+                    gn.tie = m21.tie.Tie("stop")
+                    previous_notes_to_set.append(gn.nameWithOctave)
+            elif gn.isChord:
+                for ii, note in enumerate(gn):
+                    if labels[i][0][ii]["tie"]:
+                        note.tie = m21.tie.Tie("stop")
+                        previous_notes_to_set.append(note.nameWithOctave)
+
+            # correctly set the previous element if there was at least one tie
+            if len(previous_notes_to_set) > 0:
+                if gn_list[i - 1].isRest:
+                    pass
+                elif gn_list[i - 1].isNote:
+                    assert len(previous_notes_to_set) == 1
+                    assert gn.nameWithOctave == previous_notes_to_set[0]
+                    if gn_list[i - 1].tie is None:  # there was not already a tie
+                        gn_list[i - 1].tie = m21.tie.Tie("start")
+                    else:
+                        gn_list[i - 1].tie = m21.tie.Tie("continue")
+                elif gn.isChord:
+                    for note_name in previous_notes_to_set:
+                        gn[note_name + ".tie"] = "stop"
+    return gn_list
+
+
+def m21tuple_from_info(tuplet_info):
+    """Generate a m21.duration.Tuplet object from our string description (for a single general note).
+
+    Examples are "3B", "3:2", "5:4B" where the B means that the bracket is displayed.
+
+    Args:
+        tuplet_info (string): the description of the tuplet for a single general note
+
+    Returns:
+        m21.duration.Tuplet: the m21 tuplet object
+    """
+    bracket = tuplet_info.endswith("B")
+    if bracket:
+        tuplet_info = tuplet_info[:-1]
+    # set the notation "a" or "a:b"
+    if len(tuplet_info.split(":")) == 1:
+        t = m21.duration.Tuplet(int(tuplet_info), 2)
+        t.tupletActualShow = "number"
+        t.tupletNormalShow = None
+    else:
+        info = tuplet_info.split(":")
+        t = m21.duration.Tuplet(int(info[0]), int(info[1]))
+        t.tupletActualShow = "number"
+        t.tupletNormalShow = "number"
+    # set if the bracket is visible
+    t.bracket = bracket
+    return t
 
 
 ########################### old functions to check

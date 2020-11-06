@@ -3,7 +3,7 @@ import music21 as m21
 from pathlib import Path
 from fractions import Fraction as Fr
 
-from lib.NotationTree import *
+from lib.notation_tree import *
 
 
 def test_notenode1():
