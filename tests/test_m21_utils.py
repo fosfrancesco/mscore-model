@@ -417,3 +417,54 @@ def test_linear_beaming_from_nt():
         assert m21_2_seq_struct(gns, "beamings")[1] == nt2seq_structure(bt)[1]
         assert m21_2_seq_struct(gns, "tuplets")[1] == nt2seq_structure(tt)[1]
 
+
+def test_nt2general_notes1():
+    score = m21.converter.parse(str(Path("tests/test_musicxml/test_score1.musicxml")))
+    measures = score.parts[0].getElementsByClass("Measure")
+    for m in measures:
+        gns = m.getElementsByClass("GeneralNote")
+        bt = m21_2_notationtree(gns, "beamings")
+        tt = m21_2_notationtree(gns, "tuplets")
+        out_gns = nt2general_notes(bt, tt)
+        # check beamings and tuplets
+        assert m21_2_seq_struct(gns, "beamings") == m21_2_seq_struct(
+            out_gns, "beamings"
+        )
+        assert (
+            correct_tuplet(m21_2_seq_struct(gns, "tuplets")[0])
+            == m21_2_seq_struct(out_gns, "tuplets")[0]
+        )
+        assert (
+            m21_2_seq_struct(gns, "tuplets")[1]
+            == m21_2_seq_struct(out_gns, "tuplets")[1]
+        )
+        for n1, n2 in zip(gns, out_gns):
+            assert gn2label(n1) == gn2label(n2)
+            # check m21 proprieties without the modifications that we do for importing
+            assert get_type_number(n1) == get_type_number(n2)
+
+
+def test_nt2general_notes2():
+    score = m21.converter.parse(str(Path("tests/test_musicxml/test_score3.musicxml")))
+    measures = score.parts[0].getElementsByClass("Measure")
+    for m in measures:
+        gns = m.getElementsByClass("GeneralNote")
+        bt = m21_2_notationtree(gns, "beamings")
+        tt = m21_2_notationtree(gns, "tuplets")
+        out_gns = nt2general_notes(bt, tt)
+        # check beamings and tuplets
+        assert m21_2_seq_struct(gns, "beamings") == m21_2_seq_struct(
+            out_gns, "beamings"
+        )
+        assert (
+            correct_tuplet(m21_2_seq_struct(gns, "tuplets")[0])
+            == m21_2_seq_struct(out_gns, "tuplets")[0]
+        )
+        assert (
+            m21_2_seq_struct(gns, "tuplets")[1]
+            == m21_2_seq_struct(out_gns, "tuplets")[1]
+        )
+        for n1, n2 in zip(gns, out_gns):
+            assert gn2label(n1) == gn2label(n2)
+            # check m21 proprieties without the modifications that we do for importing
+            assert get_type_number(n1) == get_type_number(n2)
