@@ -522,18 +522,26 @@ def nt2general_notes(bt, tt):
     # add beamings
     for i, gn in enumerate(gn_list):
         if not gn.isRest:  # rests do not have beams in m21
-            if (
-                not all(beamings[i]) == "partial"
+            if not all(
+                [b == "partial" for b in beamings[i]]
             ):  # this case is handled by note type only in m21
                 for beam in beamings[i]:
-                    gn.beams.append(beam)
+                    if (beam == "start") or (beam == "stop") or ((beam == "continue")):
+                        gn.beams.append(beam)
+                    elif (
+                        beam == "partial"
+                    ):  # for partial, check the other beams to know if it is right or left
+                        if any([b == "start" for b in beamings[i]]):
+                            gn.beams.append("partial", "right")
+                        else:
+                            gn.beams.append("partial", "left")
 
     # add tuplets
     for i, gn in enumerate(gn_list):
         for ii, t in enumerate(tuplets[i]):
             t = m21tuple_from_info(tuplets_info[i][ii])
             # set the start and stop. Continue is None for m21 tuple and we don't need to set it
-            if labels[i][ii] != "continue":
+            if tuplets[i][ii] != "continue":
                 t.type = tuplets[i][ii]
             gn.duration.appendTuplet(t)
 
@@ -574,7 +582,13 @@ def set_ties(gn_list, labels):
                         gn_list[i - 1].tie = m21.tie.Tie("continue")
                 elif gn.isChord:
                     for note_name in previous_notes_to_set:
-                        gn[note_name + ".tie"] = "stop"
+                        if (
+                            gn_list[i - 1][note_name].tie is None
+                        ):  # there was not already a tie
+                            gn_list[i - 1][note_name].tie = m21.tie.Tie("start")
+                        else:
+                            gn_list[i - 1][note_name].tie = m21.tie.Tie("continue")
+
     return gn_list
 
 

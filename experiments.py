@@ -5,13 +5,30 @@ from lib.m21utils import *
 from lib.notation_tree import *
 import importlib
 
+# get environment
+env = m21.environment.Environment()
+
+# check the path
+print("Environment settings:")
+print("musicXML:  ", env["musicxmlPath"])
+print("musescore: ", env["musescoreDirectPNGPath"])
+
+# set path if necessary
+# env['musicxmlPath'] = 'path/to/your/musicXmlApplication'
+# env['musescoreDirectPNGPath'] = 'path/to/your/museScore'
+
 # m21.environment.set(
 #     "musescoreDirectPNGPath",
-#     "/mnt/c/Program Files (x86)/MuseScore 2//bin/MuseScore.exe",
+#     "C:/Program Files (x86)/MuseScore 2/bin/MuseScore.exe"
 # )
 # m21.environment.set(
-#     "musicxmlPath", "/mnt/c/Program Files (x86)/MuseScore 2//bin/MuseScore.exe"
+#     "musicxmlPath", "C:/Program Files (x86)/MuseScore 2/bin/MuseScore.exe"
 # )
+
+# us = m21.environment.UserSettings()
+# # us.create()
+# us["musescoreDirectPNGPath"] = "C:/Program Files (x86)/MuseScore 2/bin/MuseScore.exe"
+# us["musicxmlPath"] = "C:/Program Files (x86)/MuseScore 2/bin/MuseScore.exe"
 
 # us = m21.environment.UserSettings()
 # # us.create()
@@ -20,13 +37,18 @@ import importlib
 
 score = m21.converter.parse(str(Path("tests/test_musicxml/test_score1.musicxml")))
 measures = score.parts[0].getElementsByClass("Measure")
-m = measures[2]
+m = measures[3]
 
 gns = m.getElementsByClass("GeneralNote")
 bt = m21_2_notationtree(gns, "beamings")
 tt = m21_2_notationtree(gns, "tuplets")
 
 out_gns = nt2general_notes(bt, tt)
+
+print(m21_2_seq_struct(gns, "tuplets"))
+print(m21_2_seq_struct(out_gns, "tuplets"))
+
+
 for n1, n2 in zip(gns, out_gns):
     print(gn2label(n1))
     print(gn2label(n2))
@@ -39,21 +61,10 @@ s = m21.stream.Stream()
 for n in nt2general_notes(bt, tt):
     s.append(n)
 
-s.show("text")
+# s.show()
 
 
 # %%
-n = m21.note.Note("B5-")
-print(n.nameWithOctave)
-c = m21.chord.Chord(["A2", "B5-", "B6"])
-c[n.nameWithOctave + ".tie"] = "start"
-
-
-c["B-5.tie"] = "stop"
-
-for no in c:
-    print(no.tie)
+s[0][0].tie
 
 # %%
-n = m21.note.Note("B5-")
-print(n.tie)
