@@ -61,10 +61,10 @@ s = m21.stream.Stream()
 for n in nt2general_notes(bt, tt):
     s.append(n)
 
-# s.show()
+#s.show()
 
 
 # %%
-s[0][0].tie
+#s[0][0].tie
 
 # %%

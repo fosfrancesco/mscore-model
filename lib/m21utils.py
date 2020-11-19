@@ -1,6 +1,7 @@
 import music21 as m21
 from fractions import Fraction
 import lib.notation_tree as nt
+import lib.score_model as sm
 import math
 import copy
 from itertools import islice
@@ -292,7 +293,8 @@ def m21_2_notationtree(gn_list, tree_type):
         tree_type (string): either "beamings" or "tuplets" 
 
     Returns:
-        NotationTree : the notation tree (BT or TT)
+        NotationTree : the notation
+         tree (BT or TT)
     """
     # extract information from general note
     seq_structure, grouping_info = m21_2_seq_struct(gn_list, tree_type)
@@ -619,6 +621,77 @@ def m21tuple_from_info(tuplet_info):
     # set if the bracket is visible
     t.bracket = bracket
     return t
+
+def m21_2_score_model(score):
+    """Create a score model from a music21 score
+
+    Args:
+        score (music21.stream.Score): a stream containing the data of a score
+
+    Returns:
+        score_model: the model of a score. The notes are kept as a list of general notes
+        in each measure
+    """
+
+    if type(score) != m21.stream.Score:
+        raise TypeError('The argument must be a m21.stream.Score', score)
+
+    score_model = sm.Score(score.metadata.title)
+    return _m21_2_score_model(score, score_model)
+
+
+def _m21_2_score_model(node, parent):
+    """Recursive function for m21_2_score_model
+
+    Args:
+        node (m21.stream) : the current node 
+        parent (Score, Part, or Measure) : the node above the current node 
+
+    Returns:
+        score_model
+    """
+
+    prev_measure = None
+    # for each substream in value, evaluate its type and do accordingly
+    # the recursion stops at the measure level, where the meter, key, and clef data are retrieved
+    # and a list of the general notes
+    for value in node:
+        node_type = type(value)
+
+        if node_type == m21.stream.Score:
+            score = sm.Score(value.metadata.title)
+            _m21_2_score_model(value, score)
+
+        elif node_type == m21.stream.Part:
+            part = sm.Part(value.id, parent)
+            parent.add_part(part)
+            _m21_2_score_model(value, part)
+
+        elif node_type == m21.stream.Measure:
+            key = sm.Key().from_m21(value.keySignature)
+            clef = sm.Clef().from_m21(value.clef)
+            time_sig = sm.TimeSignature().from_m21(value.timeSignature)
+            instrument = sm.Instrument().from_m21(value.getInstrument())
+
+            measure = sm.Measure(
+                value.number, parent.score, parent, 
+                value.offset, prev_measure, 
+                key, time_sig, clef, instrument)
+
+            prev_measure = measure
+            parent.add_measure(measure)
+
+            if not value.hasVoices():
+                measure.update_sequence(sm.Sequence(measure, value.notesAndRests))
+            else:
+                _m21_2_score_model(value, measure)
+
+        elif node_type == m21.stream.Voice:
+            parent.update_sequence(sm.Sequence(parent, value.notesAndRests, value.id))
+
+    return parent
+
+
 
 
 ########################### old functions to check

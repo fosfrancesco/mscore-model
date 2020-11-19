@@ -3,6 +3,38 @@ import sys
 from pathlib import Path
 from fractions import Fraction as Fr
 from lib.m21utils import *
+import lib.score_model as sm
+
+def test_score_model():
+    m21_score = m21.corpus.parse('bach/bwv295.xml')
+    score_model = m21_2_score_model(m21_score)
+
+    # check return type of function
+    assert type(score_model) == sm.Score
+
+    # test number of part / voices / measures
+    assert len(m21_score.parts) == len(score_model.parts)
+    assert len(m21_score.voices) == score_model.nb_voices()
+    assert len(m21_score.parts[0].getElementsByClass('Measure')) == score_model.nb_measures()
+    
+    # test key signature    
+    key = score_model.get_key_sig()
+    assert m21_score.analyze('key').tonic.name == key.tonic
+    assert m21_score.analyze('key').mode == key.mode
+
+    # test time signature
+    time_sig = score_model.get_time_sig()
+    assert m21_score.timeSignature.numerator == time_sig.numerator
+    assert m21_score.timeSignature.denominator == time_sig.denominator
+
+    # check that the list of general notes are the same
+    
+
+
+
+
+
+
 
 
 def test_is_tied1():
