@@ -1,9 +1,9 @@
-from lib.m21utils import gn2label
 import music21 as m21
+import lib.m21utils as m21u
 from pathlib import Path
-from fractions import Fraction as Fr
+from fractions import Fraction
 
-from lib.notation_tree import *
+from lib.bar_trees import *
 
 
 def test_notenode1():
@@ -12,7 +12,7 @@ def test_notenode1():
     n2 = m21.note.Note("D4")
     n_grace = n2.getGrace()
     root = Root()
-    node1 = LeafNode(root, [gn2label(gn) for gn in [n_grace, n1]])
+    node1 = LeafNode(root, [m21u.gn2label(gn) for gn in [n_grace, n1]])
     assert node1.label == [
         ([{"npp": "D4", "acc": None, "tie": False}], 4, 0, True),
         ([{"npp": "E5", "acc": -2, "tie": False}], 2, 1, False),
@@ -41,8 +41,8 @@ def test_notationtree1():
     n2 = m21.note.Note("D4")
     root = Root()
     node1 = InternalNode(root, "")
-    node3 = LeafNode(node1, gn2label(n1))
-    node4 = LeafNode(node1, gn2label(n2))
+    node3 = LeafNode(node1, m21u.gn2label(n1))
+    node4 = LeafNode(node1, m21u.gn2label(n2))
     nt1 = NotationTree(root, tree_type="beaming")
     assert nt1.get_leaf_nodes() == [node3, node4]
     assert nt1.get_nodes(local_root=node1) == [node1, node3, node4]
@@ -56,4 +56,22 @@ def test_notationtree1():
     assert nt1.get_lca(node4, node3) == node1
     assert nt1.get_lca(root, node4) == root
     assert nt1.get_lca(node4, root) == root
+
+
+def test_rhythmtree1():
+    root = Root()
+    node0 = InternalNode(root, "")
+    node1 = InternalNode(root, "")
+    node2 = LeafNode(node0, 0)
+    node3 = InternalNode(node1, "")
+    node4 = InternalNode(node1, "")
+    node5 = InternalNode(node1, "")
+    node6 = LeafNode(node3, [[44], [45, 48, 50]])
+    node7 = LeafNode(node4, [[55]])
+    node8 = LeafNode(node5, [[55]])
+    rt = RhythmTree(root)
+    assert rt.node_duration(node0) == 0.5
+    assert rt.node_duration(node1) == 0.5
+    assert rt.node_duration(node2) == Fraction(1, 2)
+    assert rt.node_duration(node6) == Fraction(1, 6)
 

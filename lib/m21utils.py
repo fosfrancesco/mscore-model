@@ -1,6 +1,6 @@
 import music21 as m21
 from fractions import Fraction
-import lib.notation_tree as nt
+import lib.bar_trees as bar_trees
 import math
 import copy
 from itertools import islice
@@ -292,15 +292,15 @@ def m21_2_notationtree(gn_list, tree_type):
         tree_type (string): either "beamings" or "tuplets" 
 
     Returns:
-        NotationTree : the notation tree (BT or TT)
+        NotationTree : the notation tree (NT or TT)
     """
     # extract information from general note
     seq_structure, grouping_info = m21_2_seq_struct(gn_list, tree_type)
     leaf_label_list = [gn2label(gn) for gn in gn_list]
     # set the tree
-    root = nt.Root()
+    root = bar_trees.Root()
     _recursive_tree_generation(seq_structure, leaf_label_list, grouping_info, root, 0)
-    return nt.NotationTree(root, tree_type=tree_type)
+    return bar_trees.NotationTree(root, tree_type=tree_type)
 
 
 def _recursive_tree_generation(
@@ -314,12 +314,12 @@ def _recursive_tree_generation(
         if len(n[depth:]) == 0:  # no beaming/tuplets
             assert start_index is None
             assert stop_index is None
-            nt.LeafNode(local_root, leaf_label_list[i])
+            bar_trees.LeafNode(local_root, leaf_label_list[i])
         elif n[depth] == "partial":  # partial beaming (only for BTs)
             assert start_index is None
             assert stop_index is None
             # there are more levels of beam otherwise we would be on the previous case
-            temp_int_node = nt.InternalNode(local_root, grouping_info[i][depth])
+            temp_int_node = bar_trees.InternalNode(local_root, grouping_info[i][depth])
             _recursive_tree_generation(
                 [n], [leaf_label_list[i]], [grouping_info[i]], temp_int_node, depth + 1,
             )
@@ -335,7 +335,7 @@ def _recursive_tree_generation(
             assert start_index is not None
             assert stop_index is None
             stop_index = i
-            temp_int_node = nt.InternalNode(local_root, grouping_info[i][depth])
+            temp_int_node = bar_trees.InternalNode(local_root, grouping_info[i][depth])
             _recursive_tree_generation(
                 seq_structure[start_index : stop_index + 1],
                 leaf_label_list[start_index : stop_index + 1],
@@ -468,22 +468,22 @@ def window(seq, n=2):
         yield result
 
 
-def nt2general_notes(bt, tt):
+def nt2general_notes(nt, tt):
     """Generate a list of music21 generalNote from a couple (beaming tree, couple tree).
 
     WARNING: the attribute tie cannot be correctly set on the first note. 
     Remember to run the method set_ties() when the entire voice is ready.
 
     Args:
-        bt (NotationTree): A notation tree of type "beamings"
+        nt (NotationTree): A notation tree of type "beamings"
         tt (NotationTree): A notation tree of type "tuplets"
 
     Returns:
         list: a list of music21 GeneralNote
     """
-    beamings = nt2seq_structure(bt)[0]
+    beamings = nt2seq_structure(nt)[0]
     tuplets, tuplets_info = nt2seq_structure(tt)
-    labels = [n.label for n in bt.get_leaf_nodes()]
+    labels = [n.label for n in nt.get_leaf_nodes()]
 
     gn_list = []
 

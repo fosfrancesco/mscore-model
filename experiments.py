@@ -2,20 +2,21 @@
 import music21 as m21
 from pathlib import Path
 from lib.m21utils import *
-from lib.notation_tree import *
+from lib.bar_trees import *
 import importlib
 
 # get environment
 env = m21.environment.Environment()
 
-# check the path
-print("Environment settings:")
+
+# # check the path
+# print("Environment settings:")
 print("musicXML:  ", env["musicxmlPath"])
 print("musescore: ", env["musescoreDirectPNGPath"])
 
 # set path if necessary
-# env['musicxmlPath'] = 'path/to/your/musicXmlApplication'
-# env['musescoreDirectPNGPath'] = 'path/to/your/museScore'
+# env["musicxmlPath"] = "C:/Program Files (x86)/MuseScore 2/bin/MuseScore.exe"
+# env["musescoreDirectPNGPath"] = "C:/Program Files (x86)/MuseScore 2/bin/MuseScore.exe"
 
 # m21.environment.set(
 #     "musescoreDirectPNGPath",
@@ -35,9 +36,9 @@ print("musescore: ", env["musescoreDirectPNGPath"])
 # us["musescoreDirectPNGPath"] = "/usr/bin/musescore"
 # us["musicxmlPath"] = "/usr/bin/musescore"
 
-score = m21.converter.parse(str(Path("tests/test_musicxml/test_score1.musicxml")))
+score = m21.converter.parse(str(Path("tests/test_musicxml/test_score3.musicxml")))
 measures = score.parts[0].getElementsByClass("Measure")
-m = measures[3]
+m = measures[0]
 
 gns = m.getElementsByClass("GeneralNote")
 bt = m21_2_notationtree(gns, "beamings")
@@ -61,10 +62,21 @@ s = m21.stream.Stream()
 for n in nt2general_notes(bt, tt):
     s.append(n)
 
-# s.show()
+s.show()
 
 
 # %%
-s[0][0].tie
+root = Root()
+node0 = InternalNode(root, "")
+node1 = InternalNode(root, "")
+node2 = LeafNode(node0, 0)
+node3 = InternalNode(node1, "")
+node4 = InternalNode(node1, "")
+node5 = InternalNode(node1, "")
+node6 = LeafNode(node3, [[44], [45, 48, 50]])
+node7 = LeafNode(node4, [[55]])
+node8 = LeafNode(node5, [[55]])
+rt = RhythmTree(root)
+rt.show()
 
 # %%

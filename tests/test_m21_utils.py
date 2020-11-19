@@ -1,5 +1,4 @@
 import music21 as m21
-import sys
 from pathlib import Path
 from fractions import Fraction as Fr
 from lib.m21utils import *
@@ -358,16 +357,16 @@ def test_m21_2_notationtree1():
     measures = score.parts[0].getElementsByClass("Measure")
     # measure 0
     gns_m0 = measures[0].getElementsByClass("GeneralNote")
-    nt = m21_2_notationtree(gns_m0, "beamings")
-    assert len(nt.get_nodes()) == 2
-    assert len(nt.get_leaf_nodes()) == 1
-    assert len(nt.root.children) == 1
+    bt = m21_2_notationtree(gns_m0, "beamings")
+    assert len(bt.get_nodes()) == 2
+    assert len(bt.get_leaf_nodes()) == 1
+    assert len(bt.root.children) == 1
     # measure 1
     gns_m0 = measures[1].getElementsByClass("GeneralNote")
-    nt = m21_2_notationtree(gns_m0, "beamings")
-    assert len(nt.get_nodes()) == 12
-    assert len(nt.get_leaf_nodes()) == 8
-    assert len(nt.root.children) == 4
+    bt = m21_2_notationtree(gns_m0, "beamings")
+    assert len(bt.get_nodes()) == 12
+    assert len(bt.get_leaf_nodes()) == 8
+    assert len(bt.root.children) == 4
     # measure 2
     gns_m0 = measures[2].getElementsByClass("GeneralNote")
     nt_bt = m21_2_notationtree(gns_m0, "beamings")
