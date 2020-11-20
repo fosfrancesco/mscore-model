@@ -1,82 +1,15 @@
-#%%
-import music21 as m21
-from pathlib import Path
-from lib.m21utils import *
-from lib.bar_trees import *
-import importlib
+# %%
+import numpy as np
+from fractions import Fraction
+from lib.music_sequences import *
 
-# get environment
-env = m21.environment.Environment()
-
-
-# # check the path
-# print("Environment settings:")
-print("musicXML:  ", env["musicxmlPath"])
-print("musescore: ", env["musescoreDirectPNGPath"])
-
-# set path if necessary
-# env["musicxmlPath"] = "C:/Program Files (x86)/MuseScore 2/bin/MuseScore.exe"
-# env["musescoreDirectPNGPath"] = "C:/Program Files (x86)/MuseScore 2/bin/MuseScore.exe"
-
-# m21.environment.set(
-#     "musescoreDirectPNGPath",
-#     "C:/Program Files (x86)/MuseScore 2/bin/MuseScore.exe"
-# )
-# m21.environment.set(
-#     "musicxmlPath", "C:/Program Files (x86)/MuseScore 2/bin/MuseScore.exe"
-# )
-
-# us = m21.environment.UserSettings()
-# # us.create()
-# us["musescoreDirectPNGPath"] = "C:/Program Files (x86)/MuseScore 2/bin/MuseScore.exe"
-# us["musicxmlPath"] = "C:/Program Files (x86)/MuseScore 2/bin/MuseScore.exe"
-
-# us = m21.environment.UserSettings()
-# # us.create()
-# us["musescoreDirectPNGPath"] = "/usr/bin/musescore"
-# us["musicxmlPath"] = "/usr/bin/musescore"
-
-score = m21.converter.parse(str(Path("tests/test_musicxml/test_score3.musicxml")))
-measures = score.parts[0].getElementsByClass("Measure")
-m = measures[0]
-
-gns = m.getElementsByClass("GeneralNote")
-bt = m21_2_notationtree(gns, "beamings")
-tt = m21_2_notationtree(gns, "tuplets")
-
-out_gns = nt2general_notes(bt, tt)
-
-print(m21_2_seq_struct(gns, "tuplets"))
-print(m21_2_seq_struct(out_gns, "tuplets"))
-
-
-for n1, n2 in zip(gns, out_gns):
-    print(gn2label(n1))
-    print(gn2label(n2))
-    print("***")
-    print(get_beams(n1), get_beams(n2))
-    print(get_tuplets(n1), get_tuplets(n2))
-    print("____________")
-
-s = m21.stream.Stream()
-for n in nt2general_notes(bt, tt):
-    s.append(n)
-
-s.show()
+seq = [0, Fraction(0.25)]
+output = musical_split(seq, 3)
+print(output)
+expected_output = [[0, 0.75], [0], [0]]
+for o, exp_o in zip(output, expected_output):
+    print(np.array_equal(o, exp_o))
 
 
 # %%
-root = Root()
-node0 = InternalNode(root, "")
-node1 = InternalNode(root, "")
-node2 = LeafNode(node0, 0)
-node3 = InternalNode(node1, "")
-node4 = InternalNode(node1, "")
-node5 = InternalNode(node1, "")
-node6 = LeafNode(node3, [[44], [45, 48, 50]])
-node7 = LeafNode(node4, [[55]])
-node8 = LeafNode(node5, [[55]])
-rt = RhythmTree(root)
-rt.show()
-
-# %%
+Fraction(0.1).limit_denominator()
