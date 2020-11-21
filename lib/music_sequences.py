@@ -1,5 +1,6 @@
 import numpy as np
 from fractions import Fraction
+from lib.bar_trees import *
 
 
 def split_content(seq, k: int, interval=(0, 1)):
@@ -49,14 +50,24 @@ def musical_split(seq, k: int):
     ]
 
 
-def sequence_to_rhythm_tree(seq : np.array, depth: int):
-    if seq.size == 1: # stop recursion (size can never be 0 from musical_split)
-        return seq
-    for k in [2, 3, 5, 7]:
-        recursive_choices = []
-        for subseq in musical_split(seq, k):
-            recursive_choices.append(sequence_to_rhythm_tree(subseq, depth+1))
-        return np.argmin([l.size for l in recursive_choices]
-
-    #maybe i should implement it with trees. Problem is building trees bottom up
-
+def sequence_to_rhythm_tree(seq: np.array, depth: int, subtree_parent: Node):
+    if depth > 10:  # stop recursion because maximum depth is reached
+        pass
+    elif seq.size == 1:  # stop recursion (size can never be 0 from musical_split)
+        LeafNode(subtree_parent, [list(seq)])
+    else:
+        recursive_choices = (
+            []
+        )  # list of subsubtrees parents corresponding to differen division values
+        for k in [2, 3]:
+            subsubtree_parent = InternalNode(None, "")
+            for subseq in musical_split(seq, k):
+                sequence_to_rhythm_tree(subseq, depth + 1, subsubtree_parent)
+            recursive_choices.append(subsubtree_parent)
+        # find the best division value, i.e. the one generating the tree with minimum number of leaves
+        min_leaves_subtree_index = np.argmin(
+            [n.subtree_leaves() for n in recursive_choices]
+        )
+        # connect this to the subtree parent
+        subtree_parent.add_child(recursive_choices[min_leaves_subtree_index])
+        recursive_choices[min_leaves_subtree_index].parent = subtree_parent

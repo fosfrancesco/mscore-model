@@ -2,14 +2,17 @@
 import numpy as np
 from fractions import Fraction
 from lib.music_sequences import *
+from lib.bar_trees import *
 
-seq = [0, Fraction(0.25)]
-output = musical_split(seq, 3)
-print(output)
-expected_output = [[0, 0.75], [0], [0]]
-for o, exp_o in zip(output, expected_output):
-    print(np.array_equal(o, exp_o))
+root = Root()
+sequence_to_rhythm_tree(
+    np.array([Fraction(0), Fraction(1, 6), Fraction(1, 2), Fraction(7, 8)]), 0, root
+)
+t = Tree(root)
+t.show()
 
 
 # %%
 Fraction(0.1).limit_denominator()
+
+# %%

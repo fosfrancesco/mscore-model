@@ -26,7 +26,7 @@ class Node:
         self.label = label
         self.duration = None  # we initialize that when the tree is builded and complete
 
-        if self.type != "root":
+        if self.parent is not None:
             parent.add_child(
                 self
             )  # add a child in the parent Node if the parent is not the root
@@ -52,10 +52,11 @@ class Node:
 
     def subtree_size(self):
         """Return the number of nodes in the subtree under the node (counting also the node itself).This class is overridden in LeafNode to make the recursion stop."""
-        size = 1
-        for c in self.get_children():
-            size += c.subtree_size()
-        return size
+        return 1 + sum([c.subtree_leaves() for c in self.children])
+
+    def subtree_leaves(self):
+        """Return the number of leaves in the subtree under the node.This class is overridden in LeafNode to make the recursion stop."""
+        return sum([c.subtree_leaves() for c in self.children])
 
     def has_children(self):
         if len(self.children) == 0:
@@ -103,6 +104,9 @@ class LeafNode(Node):
         Node.__init__(self, parent, "leaf", label)
 
     def subtree_size(self):
+        return 1
+
+    def subtree_leaves(self):
         return 1
 
     def to_string(self):
