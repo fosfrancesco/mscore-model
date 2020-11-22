@@ -76,4 +76,5 @@ def test_rhythmtree1():
     assert rt.node_duration(node6) == Fraction(1, 6)
     assert root.subtree_leaves() == 4
     assert node7.subtree_leaves() == 1
+    assert np.array_equal(rt.get_leaves_timestamps(), [])
 

@@ -44,3 +44,11 @@ def test_musical_split1():
     for o, exp_o in zip(output, expected_output):
         assert np.array_equal(o, exp_o)
 
+
+def test_timeline1():
+    timestamps = np.array([1, 2, 6.5])
+    musical_artifacts = np.array(["C1", "D2", "F4"])
+    tim = Timeline(timestamps, musical_artifacts)
+    assert tim.events == [(1, "C1"), (2, "D2"), (6.5, "F4")]
+    assert np.array_equal(tim.get_musical_artifacts(), musical_artifacts)
+    assert np.array_equal(tim.get_timestamps(), timestamps)

@@ -71,3 +71,37 @@ def sequence_to_rhythm_tree(seq: np.array, depth: int, subtree_parent: Node):
         # connect this to the subtree parent
         subtree_parent.add_child(recursive_choices[min_leaves_subtree_index])
         recursive_choices[min_leaves_subtree_index].parent = subtree_parent
+
+
+class Timeline:
+    def __init__(self, timestamps, musical_artifacts, start=0, end=1, auto_sort=False):
+        if len(timestamps) != len(musical_artifacts):
+            raise TypeError(
+                "The lenght of timestamps and musical artifacts must be the same."
+            )
+        if auto_sort:
+            self.events = list(sorted(zip(timestamps, musical_artifacts)))
+        else:
+            self.events = list(zip(timestamps, musical_artifacts))
+        self.start = start
+        self.end = end
+
+    def get_timestamps(self):
+        return [e[0] for e in self.events]
+
+    def get_musical_artifacts(self):
+        return [e[1] for e in self.events]
+
+    def split(self, k: int):
+        # compute the indices where we need to split
+        split_indices = [
+            np.searchsorted(
+                self.get_timestamps(),
+                Fraction(i, k) * Fraction((self.end - self.start))
+                + Fraction(self.start),
+            )
+            for i in range(1, k)
+        ]
+        # compute the subsequence where each element should end
+        # ...to complete
+

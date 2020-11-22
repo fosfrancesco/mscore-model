@@ -2,6 +2,7 @@
 import lib.m21utils as m21u
 from fractions import Fraction
 from pathlib import Path
+import numpy as np
 
 # Digraph and the show() function are not useful for some application, so can be commented to reduce the dependencies
 from graphviz import Digraph
@@ -366,3 +367,18 @@ class RhythmTree(Tree):
         for a in self.get_ancestors(node):
             duration = duration / len(a.children)
         return duration
+
+    def get_leaves_timestamps(self, node=None):
+        if node is None:
+            node = self.root
+        if isinstance(node, LeafNode):  # stop recursion
+            return np.array([Fraction(0, 1)])
+        else:  # recursive call: take the children results, shrink and shift it
+            return np.concatenate(
+                [
+                    self.get_leaves_timestamps(node=c) / len(node.children)
+                    + Fraction(i) / len(node.children)
+                    for i, c in enumerate(node.children)
+                ]
+            )
+
