@@ -355,7 +355,7 @@ class RhythmTree(Tree):
                             )
                         else:
                             for pitch in gn:
-                                if not isinstance(pitch, int):
+                                if not isinstance(pitch, (int, np.integer)):
                                     raise TypeError(
                                         "Each pitch in each general note in leaf label"
                                         + str(node)
