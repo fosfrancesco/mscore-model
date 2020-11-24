@@ -136,8 +136,8 @@ def test_shift_and_rescale():
     musical_artifacts = np.array(["C1", "D2"])
     events = [Event(t, m) for t, m in zip(timestamps, musical_artifacts)]
     tim = Timeline(events, start=1, end=2)
-    expected_timeline = (
-        Timeline([Event(6, "C1"), Event(6 + Fraction(2, 3), "D2")], start=6, end=8),
+    expected_timeline = Timeline(
+        [Event(6, "C1"), Event(6 + Fraction(2, 3), "D2")], start=6, end=8
     )
     assert np.array_equal(
         tim.shift_and_rescale(new_start=6, new_end=8), expected_timeline

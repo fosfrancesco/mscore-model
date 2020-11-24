@@ -77,6 +77,15 @@ class Node:
     def not_unary(self):
         return len(self.children) != 1
 
+    def complete(self):
+        """Return true if all the subtree under the node either have children or are LeafNodes"""
+        if self.type == "leaf":
+            return True
+        elif len(self.children) == 0:
+            return False
+        else:
+            return all([c.complete() for c in self.children])
+
     def __eq__(self, other):
         return self.to_string() == other.to_string()
 

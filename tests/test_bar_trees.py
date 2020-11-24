@@ -23,6 +23,8 @@ def test_notenode1():
             ([{"npp": "E5", "acc": -2, "tie": False}], 2, 1, False),
         ]
     )
+    assert root.complete()
+    assert node1.complete()
 
 
 def test_internalnode1():
@@ -33,6 +35,7 @@ def test_internalnode1():
     assert len(node1.children) == 2
     assert node1.children[0] == node3
     assert node1.children[1] == node4
+    assert not node1.complete()
 
 
 def test_notationtree1():
@@ -56,6 +59,7 @@ def test_notationtree1():
     assert nt1.get_lca(node4, node3) == node1
     assert nt1.get_lca(root, node4) == root
     assert nt1.get_lca(node4, root) == root
+    assert root.complete()
 
 
 def test_rhythmtree1():
