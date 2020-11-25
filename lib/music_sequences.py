@@ -167,7 +167,7 @@ def timestamps2rhythm_tree(seq: np.array, depth: int, subtree_parent: Node):
         recursive_choices = (
             []
         )  # list of subsubtrees parents corresponding to differen division values
-        for k in [2, 3]:
+        for k in [2, 3, 5, 7]:
             subsubtree_parent = InternalNode(None, "")
             for subseq in musical_split(seq, k):
                 timestamps2rhythm_tree(subseq, depth + 1, subsubtree_parent)
@@ -181,10 +181,10 @@ def timestamps2rhythm_tree(seq: np.array, depth: int, subtree_parent: Node):
         recursive_choices[min_leaves_subtree_index].parent = subtree_parent
 
 
-def timeline2rt(tim: Timeline):
+def timeline2rt(tim: Timeline, allowed_divisions=[2, 3]):
     tim = tim.shift_and_rescale(new_start=0, new_end=1)  # rescale the input timeline
     root = Root()
-    __timeline2rt(tim, 0, root)
+    __timeline2rt(tim, 0, root, allowed_divisions)
     if (
         isinstance(root.children[0], InternalNode)
         and len(root.children[0].children) == 0
@@ -195,7 +195,9 @@ def timeline2rt(tim: Timeline):
         return RhythmTree(root)
 
 
-def __timeline2rt(tim: Timeline, depth: int, subtree_parent: Node):
+def __timeline2rt(
+    tim: Timeline, depth: int, subtree_parent: Node, allowed_divisions: list
+):
     """Recursive function that create a Rhythm Tree from a timeline, called from timeline2rt.
 
     It build the tree attaching at each step the best subtree to subtree_parent.
@@ -205,6 +207,7 @@ def __timeline2rt(tim: Timeline, depth: int, subtree_parent: Node):
         tim (Timeline): the input timeline
         depth (int): the depth of the recursion (used to stop if it exeed a maximum recursion)
         subtree_parent (Node): the parent node for the current step
+        allowed_divisions (list): the list of divisions explored by the algorithm
     """
     if depth > 6:  # stop recursion because maximum depth is reached
         InternalNode(
@@ -216,10 +219,10 @@ def __timeline2rt(tim: Timeline, depth: int, subtree_parent: Node):
         recursive_choices = (
             []
         )  # list of subsubtrees parents corresponding to differen division values
-        for k in [2, 3]:
+        for k in allowed_divisions:
             subsubtree_parent = InternalNode(None, "")
             for subtim in tim.split(k, normalize=True):
-                __timeline2rt(subtim, depth + 1, subsubtree_parent)
+                __timeline2rt(subtim, depth + 1, subsubtree_parent, allowed_divisions)
             recursive_choices.append(subsubtree_parent)
         valid_choices = [n for n in recursive_choices if n.complete()]
         if len(valid_choices) == 0:  # no valid choice available
@@ -236,7 +239,9 @@ def __timeline2rt(tim: Timeline, depth: int, subtree_parent: Node):
             ]
             # connect this to the subtree parent
             if len(min_indices) > 1:  # if min is not unique we exit from the recursion
-                pass
+                InternalNode(
+                    subtree_parent, ""
+                )  # we put an internal node without leaves that will be pruned later
             else:  # connect this to the subtree parent
                 subtree_parent.add_child(recursive_choices[min_indices[0]])
                 recursive_choices[min_indices[0]].parent = subtree_parent

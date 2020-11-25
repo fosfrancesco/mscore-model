@@ -1,6 +1,7 @@
 import music21 as m21
 from fractions import Fraction
 import lib.bar_trees as bar_trees
+import lib.music_sequences as music_sequences
 import math
 import copy
 from itertools import islice
@@ -621,30 +622,20 @@ def m21tuple_from_info(tuplet_info):
     return t
 
 
-########################### old functions to check
+def m21_2_timeline(gn_list):
+    # create the events
+    events = [
+        music_sequences.Event(gn.offset, [[0]])
+        if gn.isRest
+        else music_sequences.Event(gn.offset, [[p.midi for p in gn.pitches]])
+        for gn in gn_list
+    ]
+    return music_sequences.Timeline(
+        events,
+        start=0,
+        end=sum([Fraction(gn.duration.quarterLength) for gn in gn_list]),
+    )
 
 
-# def get_beamings(note_list):
-#     _beam_list = []
-#     for n in note_list:
-#         if n.isRest:
-#             _beam_list.append([])
-#         else:
-#             _beam_list.append(n.beams.getTypes())
-#     return _beam_list
-
-
-# def get_dots(note_list):
-#     return [n.duration.dots for n in note_list]
-
-
-# def get_durations(note_list):
-#     return [Fraction(n.duration.quarterLength) for n in note_list]
-
-
-# def get_norm_durations(note_list):
-#     dur_list = get_durations(note_list)
-#     if sum(dur_list) == 0:
-#         raise ValueError("It's not possible to normalize the durations if the sum is 0")
-#     return [d / sum(dur_list) for d in dur_list]  # normalize the duration
-
+def m21_2_rhythmtree():
+    pass
