@@ -1,9 +1,8 @@
 from numbers import Number
 import numpy as np
 from fractions import Fraction
-from lib.bar_trees import *
+import lib.bar_trees as bar_trees
 import numbers
-import functools
 
 CONTINUATION_SYMBOL = -1
 REST_SYMBOL = 0
@@ -163,13 +162,13 @@ def timestamps2rhythm_tree(seq: np.array, depth: int, subtree_parent):
     if depth > 6:  # stop recursion because maximum depth is reached
         pass
     elif seq.size == 1:  # stop recursion (size can never be 0 from musical_split)
-        LeafNode(subtree_parent, [list(seq)])
+        bar_trees.LeafNode(subtree_parent, [list(seq)])
     else:
         recursive_choices = (
             []
         )  # list of subsubtrees parents corresponding to differen division values
         for k in [2, 3, 5, 7]:
-            subsubtree_parent = InternalNode(None, "")
+            subsubtree_parent = bar_trees.InternalNode(None, "")
             for subseq in musical_split(seq, k):
                 timestamps2rhythm_tree(subseq, depth + 1, subsubtree_parent)
             recursive_choices.append(subsubtree_parent)
@@ -186,16 +185,16 @@ def timeline2rt(
     tim: Timeline, allowed_divisions=[2, 3], max_depth=7, div_preferences=None
 ):
     tim = tim.shift_and_rescale(new_start=0, new_end=1)  # rescale the input timeline
-    root = Root()
+    root = bar_trees.Root()
     __timeline2rt(tim, 0, root, allowed_divisions, max_depth, div_preferences)
     if (
-        isinstance(root.children[0], InternalNode)
+        isinstance(root.children[0], bar_trees.InternalNode)
         and len(root.children[0].children) == 0
     ):
         print("Multiple minimum leaves tree for the input timeline")
         return None
     else:
-        return RhythmTree(root)
+        return bar_trees.RhythmTree(root)
 
 
 def __timeline2rt(
@@ -220,19 +219,19 @@ def __timeline2rt(
         div_preferences (list | None): which division to accept at each level in case of multiple minima. If not None must have length [depth]
     """
     if depth >= max_depth:  # stop recursion because maximum depth is reached
-        InternalNode(
+        bar_trees.InternalNode(
             subtree_parent, ""
         )  # we put an internal node without leaves that will be pruned later
     elif all(
         [e.timestamp == 0 for e in tim.events]
     ):  # stop recursion if all events are on the left border of the timeline
-        LeafNode(subtree_parent, [e.musical_artifact for e in tim.events])
+        bar_trees.LeafNode(subtree_parent, [e.musical_artifact for e in tim.events])
     else:
         recursive_choices = (
             []
         )  # list of subsubtrees parents corresponding to differen division values
         for k in allowed_divisions:
-            subsubtree_parent = InternalNode(None, "")
+            subsubtree_parent = bar_trees.InternalNode(None, "")
             for subtim in tim.split(k, normalize=True):
                 __timeline2rt(
                     subtim,
@@ -245,7 +244,7 @@ def __timeline2rt(
             recursive_choices.append(subsubtree_parent)
         valid_choices = [n for n in recursive_choices if n.complete()]
         if len(valid_choices) == 0:  # no valid choice available
-            InternalNode(
+            bar_trees.InternalNode(
                 subtree_parent, ""
             )  # we put an internal node without leaves that will be pruned later
         else:
@@ -259,7 +258,7 @@ def __timeline2rt(
             # connect this to the subtree parent
             if len(min_indices) > 1:  # if min is not unique
                 if div_preferences is None:  # we stop the recursion
-                    InternalNode(
+                    bar_trees.InternalNode(
                         subtree_parent, ""
                     )  # we put an internal node without leaves that will be pruned later
                 else:  # we select one based on div_preferences

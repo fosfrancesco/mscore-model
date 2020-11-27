@@ -1,9 +1,10 @@
 import music21 as m21
+import numpy as np
 import lib.m21utils as m21u
 from pathlib import Path
 from fractions import Fraction
 
-from lib.bar_trees import *
+from lib.bar_trees import Root, LeafNode, InternalNode, NotationTree, RhythmTree
 
 
 def test_notenode1():

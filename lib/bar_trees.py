@@ -1,4 +1,3 @@
-# from music21 import *
 import lib.m21utils as m21u
 import lib.music_sequences as music_sequences
 from fractions import Fraction
