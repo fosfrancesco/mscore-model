@@ -467,3 +467,48 @@ def test_nt2general_notes2():
             assert gn2label(n1) == gn2label(n2)
             # check m21 proprieties without the modifications that we do for importing
             assert get_type_number(n1) == get_type_number(n2)
+
+
+def test_m21_2_timeline1():
+    score = m21.converter.parse(str(Path("tests/test_musicxml/test_score1.musicxml")))
+    measure = score.parts[0].getElementsByClass("Measure")[4]
+    gns = measure.getElementsByClass("GeneralNote")
+    tim = m21_2_timeline(gns)
+    assert list(tim.events) == [
+        (0.0, [62, 65, 69]),
+        (1.0, [62, 65, 69]),
+        (2.0, [62, 65, 72]),
+        (3.0, [60, 64, 72]),
+    ]
+    measure = score.parts[0].getElementsByClass("Measure")[6]
+    gns = measure.getElementsByClass("GeneralNote")
+    tim = m21_2_timeline(gns)
+    assert len(tim) == 6
+
+
+def test_m21_2_timeline2():
+    score = m21.converter.parse(str(Path("tests/test_musicxml/test_score1.musicxml")))
+    measures = score.parts[0].getElementsByClass("Measure")
+    for m in measures:
+        gns = m.getElementsByClass("GeneralNote")
+        tim = m21_2_timeline(gns)
+        assert tim.end == 4
+
+
+def test_m21_2_timeline3():
+    score = m21.converter.parse(str(Path("tests/test_musicxml/test_score3.musicxml")))
+    measures = score.parts[0].getElementsByClass("Measure")
+    for m in measures:
+        gns = m.getElementsByClass("GeneralNote")
+        tim = m21_2_timeline(gns)
+        assert tim.end == 4
+
+
+def test_m21_2_rhythmtree():
+    score = m21.converter.parse(str(Path("tests/test_musicxml/test_score1.musicxml")))
+    measures = score.parts[0].getElementsByClass("Measure")
+    for m in measures:
+        gns = m.getElementsByClass("GeneralNote")
+        rt = m21_2_rhythmtree(gns, div_preferences=[2, 2, 2, 2, 2, 2, 2])
+        assert rt.get_timeline(0, 4) == m21_2_timeline(gns)
+

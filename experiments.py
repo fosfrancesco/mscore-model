@@ -10,26 +10,20 @@ import lib.m21utils as m21u
 
 score = m21.converter.parse(str(Path("tests/test_musicxml/test_score1.musicxml")))
 measures = score.parts[0].getElementsByClass("Measure")
-gns_m = measures[6].getElementsByClass("GeneralNote")
-tim = Timeline([Event(gn.offset, gn.pitch.midi) for gn in gns_m], start=0, end=4)
-
-
-rt = timeline2rt(tim)
-rt.show()
-
+for m in measures:
+    gns = m.getElementsByClass("GeneralNote")
+    rt = m21u.m21_2_rhythmtree(gns, div_preferences=[2, 2, 2, 2, 2, 2, 2])
+    assert rt.get_timeline(0, 4) == m21u.m21_2_timeline(gns)
 
 # %%
-
-bt = m21u.m21_2_notationtree(gns_m, "beamings")
-bt.show()
-
-
-# %%
-from fractions import Fraction
-
 score = m21.converter.parse(str(Path("tests/test_musicxml/test_score1.musicxml")))
 measures = score.parts[0].getElementsByClass("Measure")
-gns_m = measures[4].getElementsByClass("GeneralNote")
-m21u.m21_2_timeline(gns_m)
 
+gns = measures[5].getElementsByClass("GeneralNote")
+rt = m21u.m21_2_rhythmtree(gns, div_preferences=[2, 2, 2, 2, 2, 2, 2])
+print(rt.get_timeline(0, 4))
+m21u.m21_2_timeline(gns)
+rt.get_timeline(0, 4) == m21u.m21_2_timeline(gns)
+rt.show()
 # %%
+rt.show()

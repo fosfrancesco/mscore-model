@@ -1,10 +1,9 @@
 # from music21 import *
 import lib.m21utils as m21u
+import lib.music_sequences as music_sequences
 from fractions import Fraction
 from pathlib import Path
 import numpy as np
-
-# Digraph and the show() function are not useful for some application, so can be commented to reduce the dependencies
 from graphviz import Digraph
 
 
@@ -356,7 +355,12 @@ class RhythmTree(Tree):
                     )
                 else:
                     for gn in node.label:
-                        if not isinstance(gn, list):
+                        if (
+                            gn == music_sequences.CONTINUATION_SYMBOL
+                            or gn == music_sequences.REST_SYMBOL
+                        ):
+                            pass  # a continuation symbol cannot be in a chord
+                        elif not isinstance(gn, list):
                             raise TypeError(
                                 "Leaf label"
                                 + str(node)
@@ -390,4 +394,16 @@ class RhythmTree(Tree):
                     for i, c in enumerate(node.children)
                 ]
             )
+
+    def get_timeline(self, start=0, end=1):
+        leaves_timestamps = self.get_leaves_timestamps()
+        leaves_labels = [node.label for node in self.get_leaf_nodes()]
+        events = [
+            music_sequences.Event(t, pitches)
+            for label, t in zip(leaves_labels, leaves_timestamps)
+            for pitches in label
+            if pitches != music_sequences.CONTINUATION_SYMBOL
+        ]
+        timeline = music_sequences.Timeline(events, start=0, end=1)
+        return timeline.shift_and_rescale(start, end)
 

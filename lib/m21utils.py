@@ -183,7 +183,7 @@ def correct_tuplet(tuplets_list):
                 if note_tuple[ii] == "start":
                     assert start_index is None
                     start_index = ii
-                elif note_tuple[ii] is "continue":
+                elif note_tuple[ii] == "continue":
                     if start_index is None:
                         start_index = ii
                         new_tuplets_list[i][ii] = "start"
@@ -625,9 +625,9 @@ def m21tuple_from_info(tuplet_info):
 def m21_2_timeline(gn_list):
     # create the events
     events = [
-        music_sequences.Event(gn.offset, [[0]])
+        music_sequences.Event(gn.offset, music_sequences.REST_SYMBOL)
         if gn.isRest
-        else music_sequences.Event(gn.offset, [[p.midi for p in gn.pitches]])
+        else music_sequences.Event(gn.offset, [p.midi for p in gn.pitches])
         for gn in gn_list
     ]
     return music_sequences.Timeline(
@@ -637,5 +637,12 @@ def m21_2_timeline(gn_list):
     )
 
 
-def m21_2_rhythmtree():
-    pass
+def m21_2_rhythmtree(
+    gn_list, allowed_divisions=[2, 3], max_depth=7, div_preferences=None
+):
+    # create the timeline
+    tim = m21_2_timeline(gn_list)
+    return music_sequences.timeline2rt(
+        tim, allowed_divisions, max_depth, div_preferences
+    )
+

@@ -5,7 +5,8 @@ from lib.bar_trees import *
 import numbers
 import functools
 
-CONTINUATION_SYMBOL = 0
+CONTINUATION_SYMBOL = -1
+REST_SYMBOL = 0
 
 
 class Event:
@@ -158,7 +159,7 @@ def musical_split(seq, k: int):
     ]
 
 
-def timestamps2rhythm_tree(seq: np.array, depth: int, subtree_parent: Node):
+def timestamps2rhythm_tree(seq: np.array, depth: int, subtree_parent):
     if depth > 6:  # stop recursion because maximum depth is reached
         pass
     elif seq.size == 1:  # stop recursion (size can never be 0 from musical_split)
@@ -181,10 +182,12 @@ def timestamps2rhythm_tree(seq: np.array, depth: int, subtree_parent: Node):
         recursive_choices[min_leaves_subtree_index].parent = subtree_parent
 
 
-def timeline2rt(tim: Timeline, allowed_divisions=[2, 3]):
+def timeline2rt(
+    tim: Timeline, allowed_divisions=[2, 3], max_depth=7, div_preferences=None
+):
     tim = tim.shift_and_rescale(new_start=0, new_end=1)  # rescale the input timeline
     root = Root()
-    __timeline2rt(tim, 0, root, allowed_divisions)
+    __timeline2rt(tim, 0, root, allowed_divisions, max_depth, div_preferences)
     if (
         isinstance(root.children[0], InternalNode)
         and len(root.children[0].children) == 0
@@ -196,7 +199,12 @@ def timeline2rt(tim: Timeline, allowed_divisions=[2, 3]):
 
 
 def __timeline2rt(
-    tim: Timeline, depth: int, subtree_parent: Node, allowed_divisions: list
+    tim: Timeline,
+    depth: int,
+    subtree_parent,
+    allowed_divisions: list,
+    max_depth: int,
+    div_preferences,
 ):
     """Recursive function that create a Rhythm Tree from a timeline, called from timeline2rt.
 
@@ -207,14 +215,18 @@ def __timeline2rt(
         tim (Timeline): the input timeline
         depth (int): the depth of the recursion (used to stop if it exeed a maximum recursion)
         subtree_parent (Node): the parent node for the current step
-        allowed_divisions (list): the list of divisions explored by the algorithm
+        allowed_divisions (list): the list of divisions values explored by the algorithm
+        max_depth (int): the maximum depth of the recursion
+        div_preferences (list | None): which division to accept at each level in case of multiple minima. If not None must have length [depth]
     """
-    if depth > 6:  # stop recursion because maximum depth is reached
+    if depth >= max_depth:  # stop recursion because maximum depth is reached
         InternalNode(
             subtree_parent, ""
         )  # we put an internal node without leaves that will be pruned later
-    elif len(tim.events) == 1:  # stop recursion (size can never be 0 in a Timeline)
-        LeafNode(subtree_parent, [[tim.events[0].musical_artifact]])
+    elif all(
+        [e.timestamp == 0 for e in tim.events]
+    ):  # stop recursion if all events are on the left border of the timeline
+        LeafNode(subtree_parent, [e.musical_artifact for e in tim.events])
     else:
         recursive_choices = (
             []
@@ -222,7 +234,14 @@ def __timeline2rt(
         for k in allowed_divisions:
             subsubtree_parent = InternalNode(None, "")
             for subtim in tim.split(k, normalize=True):
-                __timeline2rt(subtim, depth + 1, subsubtree_parent, allowed_divisions)
+                __timeline2rt(
+                    subtim,
+                    depth + 1,
+                    subsubtree_parent,
+                    allowed_divisions,
+                    max_depth,
+                    div_preferences,
+                )
             recursive_choices.append(subsubtree_parent)
         valid_choices = [n for n in recursive_choices if n.complete()]
         if len(valid_choices) == 0:  # no valid choice available
@@ -238,10 +257,23 @@ def __timeline2rt(
                 if n.subtree_leaves() == min_leaves
             ]
             # connect this to the subtree parent
-            if len(min_indices) > 1:  # if min is not unique we exit from the recursion
-                InternalNode(
-                    subtree_parent, ""
-                )  # we put an internal node without leaves that will be pruned later
+            if len(min_indices) > 1:  # if min is not unique
+                if div_preferences is None:  # we stop the recursion
+                    InternalNode(
+                        subtree_parent, ""
+                    )  # we put an internal node without leaves that will be pruned later
+                else:  # we select one based on div_preferences
+                    valid_choices = [
+                        n for i, n in enumerate(valid_choices) if i in min_indices
+                    ]
+                    min_indices = [
+                        i
+                        for i, n in enumerate(valid_choices)
+                        if len(n.children) == div_preferences[depth]
+                    ]
+                    # connect this to the subtree parent
+                    subtree_parent.add_child(valid_choices[min_indices[0]])
+                    valid_choices[min_indices[0]].parent = subtree_parent
             else:  # connect this to the subtree parent
-                subtree_parent.add_child(recursive_choices[min_indices[0]])
-                recursive_choices[min_indices[0]].parent = subtree_parent
+                subtree_parent.add_child(valid_choices[min_indices[0]])
+                valid_choices[min_indices[0]].parent = subtree_parent
