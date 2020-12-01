@@ -7,9 +7,8 @@ import copy
 from itertools import islice
 
 
+
 ## functions to extract descriptors from music21 to create Notation Trees
-
-
 def get_accidental_number(acc):
     """Get an integer from a music21 accidental (e.g. # is +1 and bb is -2)."""
     if acc is None:
@@ -183,7 +182,7 @@ def correct_tuplet(tuplets_list):
                 if note_tuple[ii] == "start":
                     assert start_index is None
                     start_index = ii
-                elif note_tuple[ii] is "continue":
+                elif note_tuple[ii] == "continue":
                     if start_index is None:
                         start_index = ii
                         new_tuplets_list[i][ii] = "start"
@@ -622,77 +621,73 @@ def m21tuple_from_info(tuplet_info):
     t.bracket = bracket
     return t
 
-def m21_2_score_model(score):
-    """Create a score model from a music21 score
 
-    Args:
-        score (music21.stream.Score): a stream containing the data of a score
+def reconstruct(score):
+    """ This function ensures that the score is systematically of the structure : Score -> Part -> Measure -> Voice
+    It recursively goes through the whole score, if the type of stream is not as expected,
+    a new stream is inserted.
 
-    Returns:
-        score_model: the model of a score. The notes are kept as a list of general notes
-        in each measure
+    Args: score (m21.stream) : a stream of m21 objects
+
     """
+    name = None
+    empty = True
+    
+    # determine the expected type of stream, depending on the current stream
+    if isinstance(score, m21.stream.Score):
+        expected_type = m21.stream.Part
+        name = 'part'
+    elif isinstance(score, m21.stream.Part):
+        expected_type = m21.stream.Measure
+        score.makeMeasures(inPlace=True)
+    elif isinstance(score, m21.stream.Measure):
+        expected_type = m21.stream.Voice
+        name = 'single-' + str(score.id)
+    else:
+        return
 
-    if type(score) != m21.stream.Score:
-        raise TypeError('The argument must be a m21.stream.Score', score)
-
-    score_model = sm.Score(score.metadata.title)
-    return _m21_2_score_model(score, score_model)
-
-
-def _m21_2_score_model(node, parent):
-    """Recursive function for m21_2_score_model
-
-    Args:
-        node (m21.stream) : the current node 
-        parent (Score, Part, or Measure) : the node above the current node 
-
-    Returns:
-        score_model
-    """
-
-    prev_measure = None
-    # for each substream in value, evaluate its type and do accordingly
-    # the recursion stops at the measure level, where the meter, key, and clef data are retrieved
-    # and a list of the general notes
-    for value in node:
-        node_type = type(value)
-
-        if node_type == m21.stream.Score:
-            score = sm.Score(value.metadata.title)
-            _m21_2_score_model(value, score)
-
-        elif node_type == m21.stream.Part:
-            part = sm.Part(value.id, parent)
-            parent.add_part(part)
-            _m21_2_score_model(value, part)
-
-        elif node_type == m21.stream.Measure:
-            key = sm.Key().from_m21(value.keySignature)
-            clef = sm.Clef().from_m21(value.clef)
-            time_sig = sm.TimeSignature().from_m21(value.timeSignature)
-            instrument = sm.Instrument().from_m21(value.getInstrument())
-
-            measure = sm.Measure(
-                value.number, parent.score, parent, 
-                value.offset, prev_measure, 
-                key, time_sig, clef, instrument)
-
-            prev_measure = measure
-            parent.add_measure(measure)
-
-            if not value.hasVoices():
-                measure.update_sequence(sm.Sequence(measure, value.notesAndRests))
-            else:
-                _m21_2_score_model(value, measure)
-
-        elif node_type == m21.stream.Voice:
-            parent.update_sequence(sm.Sequence(parent, value.notesAndRests, value.id))
-
-    return parent
+    # iterate through only Streams and Notes, this ensures everything else stays in the right place
+    iterator = score.getElementsByClass([m21.stream.Stream, m21.note.Rest, m21.note.Note])
+    stream = m21.stream.Stream()
+    
+    # if the item in the iterator is not of the expexted type :
+    # it is added to temporary stream, from which the new node will be initialized
+    for item in iterator:
+        if not isinstance(item, expected_type):
+            empty = False
+            stream.append(item)
+            score.remove(item)
+        reconstruct(item)
+    
+    # if a gap was found, create the stream, and add to the score
+    if not empty:
+        new_node = expected_type(stream, id=name)
+        score.append(new_node)
+        # the new node must be also reconstructed in case there's more than one gap 
+        # (for ex: a score with only notes)
+        reconstruct(new_node)
 
 
+class Voice(m21.stream.Voice):
+    def __init__(self, stream):
+        m21.stream.Voice.__init__(self, stream, id=stream.id)
+        self.beaming_tree = m21_2_notationtree(stream, 'beamings')
+        self.tuplet_tree = m21_2_notationtree(stream, 'tuplets')
+    
 
+def score_notation_tree(score):
+    """Replaces the voices with score model voices"""
+    for el in score.recurse():
+        if isinstance(el, m21.stream.Voice):
+            new_voice = Voice(el)
+            score.replace(el, new_voice, recurse=True)
+
+
+def model_score(score):
+    """Takes any m21 score, reorganizes it, and compute notation trees"""
+    reconstruct(score)
+    score_notation_tree(score)
+    return score
 
 ########################### old functions to check
 

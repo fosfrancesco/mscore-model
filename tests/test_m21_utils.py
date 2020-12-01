@@ -5,38 +5,6 @@ from fractions import Fraction as Fr
 from lib.m21utils import *
 import lib.score_model as sm
 
-def test_score_model():
-    m21_score = m21.corpus.parse('bach/bwv295.xml')
-    score_model = m21_2_score_model(m21_score)
-
-    # check return type of function
-    assert type(score_model) == sm.Score
-
-    # test number of part / voices / measures
-    assert len(m21_score.parts) == len(score_model.parts)
-    assert len(m21_score.voices) == score_model.nb_voices()
-    assert len(m21_score.parts[0].getElementsByClass('Measure')) == score_model.nb_measures()
-    
-    # test key signature    
-    key = score_model.get_key_sig()
-    assert m21_score.analyze('key').tonic.name == key.tonic
-    assert m21_score.analyze('key').mode == key.mode
-
-    # test time signature
-    time_sig = score_model.get_time_sig()
-    assert m21_score.timeSignature.numerator == time_sig.numerator
-    assert m21_score.timeSignature.denominator == time_sig.denominator
-
-    # check that the list of general notes are the same
-    
-
-
-
-
-
-
-
-
 def test_is_tied1():
     n1 = m21.note.Note("F5")
     assert is_tied(n1) == False
@@ -500,3 +468,27 @@ def test_nt2general_notes2():
             assert gn2label(n1) == gn2label(n2)
             # check m21 proprieties without the modifications that we do for importing
             assert get_type_number(n1) == get_type_number(n2)
+
+def test_reconstruct():
+    s = m21.stream.Score(id='mainScore')
+
+    p1 = m21.stream.Part(id='part1')
+    s.append([m21.note.Note('C', type="whole"), m21.note.Note('C', type="whole")])
+
+    m11 = m21.stream.Measure(number=1)
+    m11.append(m21.note.Note('E', type="whole"))
+    m12 = m21.stream.Measure(number=2)
+    m12.append(m21.note.Note('F', type="whole"))
+    p1.append([m11, m12])
+    s.insert(0, p1)
+    reconstruct(s)
+
+    for el in s.recurse():
+        if isinstance(el, m21.stream.Score):
+            assert el.hasPartLikeStreams()
+        elif isinstance(el, m21.stream.Part):
+            assert el.hasMeasures()
+        elif isinstance(el, m21.stream.Measure):
+            assert el.hasVoices()
+        elif isinstance(el, m21.stream.Voice):
+            assert len(el.notes) > 0
