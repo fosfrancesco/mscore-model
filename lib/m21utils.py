@@ -8,8 +8,6 @@ from itertools import islice
 
 
 ## functions to extract descriptors from music21 to create Notation Trees
-
-
 def get_accidental_number(acc):
     """Get an integer from a music21 accidental (e.g. # is +1 and bb is -2)."""
     if acc is None:
@@ -646,3 +644,69 @@ def m21_2_rhythmtree(
         tim, allowed_divisions, max_depth, div_preferences
     )
 
+def reconstruct(score):
+    """ This function ensures that the score is systematically of the structure : Score -> Part -> Measure -> Voice
+    It recursively goes through the whole score, if the type of stream is not as expected,
+    a new stream is inserted.
+
+    Args: score (m21.stream) : a stream of m21 objects
+
+    """
+    name = None
+    empty = True
+    
+    # determine the expected type of stream, depending on the current stream
+    if isinstance(score, m21.stream.Score):
+        expected_type = m21.stream.Part
+        name = 'part'
+    elif isinstance(score, m21.stream.Part):
+        expected_type = m21.stream.Measure
+        score.makeMeasures(inPlace=True)
+    elif isinstance(score, m21.stream.Measure):
+        expected_type = m21.stream.Voice
+        name = 'single-' + str(score.id)
+    else:
+        return
+
+    # iterate through only Streams and Notes, this ensures everything else stays in the right place
+    iterator = score.getElementsByClass([m21.stream.Stream, m21.note.Rest, m21.note.Note])
+    stream = m21.stream.Stream()
+    
+    # if the item in the iterator is not of the expexted type :
+    # it is added to temporary stream, from which the new node will be initialized
+    for item in iterator:
+        if not isinstance(item, expected_type):
+            empty = False
+            stream.append(item)
+            score.remove(item)
+        reconstruct(item)
+    
+    # if a gap was found, create the stream, and add to the score
+    if not empty:
+        new_node = expected_type(stream, id=name)
+        score.append(new_node)
+        # the new node must be also reconstructed in case there's more than one gap 
+        # (for ex: a score with only notes)
+        reconstruct(new_node)
+
+
+class Voice(m21.stream.Voice):
+    def __init__(self, stream):
+        m21.stream.Voice.__init__(self, stream, id=stream.id)
+        self.beaming_tree = m21_2_notationtree(stream, 'beamings')
+        self.tuplet_tree = m21_2_notationtree(stream, 'tuplets')
+    
+
+def score_notation_tree(score):
+    """Replaces the voices with score model voices"""
+    for el in score.recurse():
+        if isinstance(el, m21.stream.Voice):
+            new_voice = Voice(el)
+            score.replace(el, new_voice, recurse=True)
+
+
+def model_score(score):
+    """Takes any m21 score, reorganizes it, and compute notation trees"""
+    reconstruct(score)
+    score_notation_tree(score)
+    return score
