@@ -1,7 +1,27 @@
 import music21 as m21
 from pathlib import Path
 from fractions import Fraction as Fr
-from lib.m21utils import *
+from lib.m21utils import (
+    is_tied,
+    get_accidental_number,
+    gn2pitches_list,
+    get_note_head,
+    get_dots,
+    is_grace,
+    gn2label,
+    simplify_label,
+    get_beams,
+    get_tuplets,
+    correct_tuplet,
+    m21_2_notationtree,
+    m21_2_seq_struct,
+    nt2seq_structure,
+    nt2general_notes,
+    get_type_number,
+    m21_2_timeline,
+    m21_2_rhythmtree,
+    reconstruct,
+)
 
 
 def test_is_tied1():
