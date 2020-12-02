@@ -1,7 +1,6 @@
 import music21 as m21
 from pathlib import Path
 from fractions import Fraction as Fr
-<<<<<<< HEAD
 from lib.m21utils import (
     is_tied,
     get_accidental_number,
@@ -23,10 +22,6 @@ from lib.m21utils import (
     m21_2_rhythmtree,
 )
 
-=======
-from lib.m21utils import *
-import lib.score_model as sm
->>>>>>> score_model
 
 def test_is_tied1():
     n1 = m21.note.Note("F5")
