@@ -2,7 +2,7 @@
 import music21 as m21
 from pathlib import Path
 from lib.m21utils import *
-from lib.notation_tree import *
+from lib.bar_trees import *
 import importlib
 
 # get environment
@@ -61,10 +61,24 @@ s = m21.stream.Stream()
 for n in nt2general_notes(bt, tt):
     s.append(n)
 
-#s.show()
+# s.show()
 
 
 # %%
-#s[0][0].tie
+# s[0][0].tie
 
 # %%
+score = m21.converter.parse(str(Path("tests/test_musicxml/test_score1.musicxml")))
+score.parts[0].getElementsByClass(m21.stream.Stream)[0].getElementsByClass(
+    m21.stream.Voice
+)
+
+
+# %%
+score = m21.converter.parse(str(Path("tests/test_musicxml/test_score2.musicxml")))
+reconstruct(score)
+expected_num_voices = [2, 1, 2, 1]
+for i, measure in enumerate(score.parts[0].getElementsByClass(m21.stream.Measure)):
+    print(len(measure.getElementsByClass(m21.stream.Voice)))
+# %%
+score.parts[0].getElementsByClass(m21.stream.Measure)[2].show()

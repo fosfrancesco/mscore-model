@@ -1,32 +1,8 @@
 import music21 as m21
 from pathlib import Path
 from fractions import Fraction as Fr
-<<<<<<< HEAD
-from lib.m21utils import (
-    is_tied,
-    get_accidental_number,
-    gn2pitches_list,
-    get_note_head,
-    get_dots,
-    is_grace,
-    gn2label,
-    simplify_label,
-    get_beams,
-    get_tuplets,
-    correct_tuplet,
-    m21_2_notationtree,
-    m21_2_seq_struct,
-    nt2seq_structure,
-    nt2general_notes,
-    get_type_number,
-    m21_2_timeline,
-    m21_2_rhythmtree,
-)
-
-=======
 from lib.m21utils import *
-import lib.score_model as sm
->>>>>>> score_model
+
 
 def test_is_tied1():
     n1 = m21.note.Note("F5")
@@ -536,16 +512,17 @@ def test_m21_2_rhythmtree():
         rt = m21_2_rhythmtree(gns, div_preferences=[2, 2, 2, 2, 2, 2, 2])
         assert rt.get_timeline(0, 4) == m21_2_timeline(gns)
 
-def test_reconstruct():
-    s = m21.stream.Score(id='mainScore')
 
-    p1 = m21.stream.Part(id='part1')
-    s.append([m21.note.Note('C', type="whole"), m21.note.Note('C', type="whole")])
+def test_reconstruct():
+    s = m21.stream.Score(id="mainScore")
+
+    p1 = m21.stream.Part(id="part1")
+    s.append([m21.note.Note("C", type="whole"), m21.note.Note("C", type="whole")])
 
     m11 = m21.stream.Measure(number=1)
-    m11.append(m21.note.Note('E', type="whole"))
+    m11.append(m21.note.Note("E", type="whole"))
     m12 = m21.stream.Measure(number=2)
-    m12.append(m21.note.Note('F', type="whole"))
+    m12.append(m21.note.Note("F", type="whole"))
     p1.append([m11, m12])
     s.insert(0, p1)
     reconstruct(s)
@@ -559,3 +536,21 @@ def test_reconstruct():
             assert el.hasVoices()
         elif isinstance(el, m21.stream.Voice):
             assert len(el.notes) > 0
+
+
+def test_reconstruct2():
+    score = m21.converter.parse(str(Path("tests/test_musicxml/test_score1.musicxml")))
+    reconstruct(score)
+    for measure in score.parts[0].getElementsByClass(m21.stream.Measure):
+        assert len(measure.getElementsByClass(m21.stream.Voice)) == 1
+
+
+def test_reconstruct3():
+    score = m21.converter.parse(str(Path("tests/test_musicxml/test_score2.musicxml")))
+    reconstruct(score)
+    expected_num_voices = [2, 1, 2, 1]
+    for i, measure in enumerate(score.parts[0].getElementsByClass(m21.stream.Measure)):
+        assert (
+            len(measure.getElementsByClass(m21.stream.Voice)) == expected_num_voices[i]
+        )
+
