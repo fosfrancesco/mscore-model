@@ -653,19 +653,16 @@ def reconstruct(score):
     Args: score (m21.stream) : a stream of m21 objects
 
     """
-    name = None
     empty = True
 
     # determine the expected type of stream, depending on the current stream
     if isinstance(score, m21.stream.Score):
+        score.makeMeasures(inPlace=True)
         expected_type = m21.stream.Part
-        name = "part"
     elif isinstance(score, m21.stream.Part):
         expected_type = m21.stream.Measure
-        score.makeMeasures(inPlace=True)
     elif isinstance(score, m21.stream.Measure):
         expected_type = m21.stream.Voice
-        name = "single-" + str(score.id)
     else:
         return
 
@@ -684,7 +681,7 @@ def reconstruct(score):
 
     # if a gap was found, create the stream, and add to the score
     if not empty:
-        new_node = expected_type(stream, id=name)
+        new_node = expected_type(stream)
         score.append(new_node)
         # the new node must be also reconstructed in case there's more than one gap
         # (for ex: a score with only notes)
