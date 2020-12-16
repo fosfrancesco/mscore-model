@@ -311,12 +311,12 @@ def _recursive_tree_generation(
     stop_index = None
     for i, n in enumerate(seq_structure):
         if len(n[depth:]) == 0:  # no beaming/tuplets
-            assert start_index is None
-            assert stop_index is None
+            assert start_index is None, 'no beaming/tuplets start_index '
+            assert stop_index is None, 'no beaming/tuplets stop_index '
             bar_trees.LeafNode(local_root, leaf_label_list[i])
         elif n[depth] == "partial":  # partial beaming (only for BTs)
-            assert start_index is None
-            assert stop_index is None
+            assert start_index is None, 'partial beaming start_index '
+            assert stop_index is None, 'partial beaming stop_index '
             # there are more levels of beam otherwise we would be on the previous case
             temp_int_node = bar_trees.InternalNode(local_root, grouping_info[i][depth])
             _recursive_tree_generation(
@@ -324,15 +324,15 @@ def _recursive_tree_generation(
             )
             temp_int_node = None
         elif n[depth] == "start":  # start of a beam/tuplet
-            assert start_index is None
-            assert stop_index is None
+            assert start_index is None, 'start of a beam/tuplet start_index '
+            assert stop_index is None, 'start of a beam/tuplet stop_index '
             start_index = i
         elif n[depth] == "continue":
-            assert start_index is not None
-            assert stop_index is None
+            assert start_index is not None, 'continue start_index '
+            assert stop_index is None, 'continue stop_index '
         elif n[depth] == "stop":
-            assert start_index is not None
-            assert stop_index is None
+            assert start_index is not None, 'stop start_index '
+            assert stop_index is None, 'stop stop_index '
             stop_index = i
             temp_int_node = bar_trees.InternalNode(local_root, grouping_info[i][depth])
             _recursive_tree_generation(
@@ -707,4 +707,18 @@ def model_score(score):
     """Takes any m21 score, reorganizes it, and compute notation trees"""
     reconstruct(score)
     score_notation_tree(score)
+    test_model_score(score)
     return score
+
+
+def  test_model_score(score):
+    error = 'Model Score Error : '
+    if isinstance(score, m21.stream.Score):
+        assert len(score.getElementsByClass('Part')) > 0, error + 'The score has no parts'
+    elif isinstance(score, m21.stream.Part):
+        assert len(score.getElementsByClass('Measure')) > 0, error + 'The part has no measures'
+    elif isinstance(score, m21.stream.Measure):
+        assert len(score.getElementsByClass('Voice')) > 0, error + 'The measure has no voices'
+        assert isinstance(score, Voice), error + 'Wrong voice class type'
+    else:
+        return
