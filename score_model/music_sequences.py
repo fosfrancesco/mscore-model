@@ -1,11 +1,7 @@
-from numbers import Number
 import numpy as np
 from fractions import Fraction
-import lib.bar_trees as bar_trees
+from .constant import CONTINUATION_SYMBOL
 import numbers
-
-CONTINUATION_SYMBOL = -1
-REST_SYMBOL = 0
 
 
 class Event:
@@ -158,121 +154,24 @@ def musical_split(seq, k: int):
     ]
 
 
-def timestamps2rhythm_tree(seq: np.array, depth: int, subtree_parent):
-    if depth > 6:  # stop recursion because maximum depth is reached
-        pass
-    elif seq.size == 1:  # stop recursion (size can never be 0 from musical_split)
-        bar_trees.LeafNode(subtree_parent, [list(seq)])
-    else:
-        recursive_choices = (
-            []
-        )  # list of subsubtrees parents corresponding to differen division values
-        for k in [2, 3, 5, 7]:
-            subsubtree_parent = bar_trees.InternalNode(None, "")
-            for subseq in musical_split(seq, k):
-                timestamps2rhythm_tree(subseq, depth + 1, subsubtree_parent)
-            recursive_choices.append(subsubtree_parent)
-        # find the best division value (if it exists), i.e. the one generating the tree with minimum number of leaves
-        min_leaves_subtree_index = np.argmin(
-            [n.subtree_leaves() for n in recursive_choices]
-        )
-        # connect this to the subtree parent
-        subtree_parent.add_child(recursive_choices[min_leaves_subtree_index])
-        recursive_choices[min_leaves_subtree_index].parent = subtree_parent
-
-
-def timeline2rt(
-    tim: Timeline, allowed_divisions=[2, 3], max_depth=7, div_preferences=None
-):
-    tim = tim.shift_and_rescale(new_start=0, new_end=1)  # rescale the input timeline
-    root = bar_trees.Root()
-    __timeline2rt(tim, 0, root, allowed_divisions, max_depth, div_preferences)
-    if (
-        isinstance(root.children[0], bar_trees.InternalNode)
-        and len(root.children[0].children) == 0
-    ):
-        print("Multiple minimum leaves tree for the input timeline")
-        return None
-    else:
-        return bar_trees.RhythmTree(root)
-
-
-def __timeline2rt(
-    tim: Timeline,
-    depth: int,
-    subtree_parent,
-    allowed_divisions: list,
-    max_depth: int,
-    div_preferences,
-):
-    """Recursive function that create a Rhythm Tree from a timeline, called from timeline2rt.
-
-    It build the tree attaching at each step the best subtree to subtree_parent.
-    It work bottom-up making the choice for the tree with minimum number of leaves at each step.
-
-    Args:
-        tim (Timeline): the input timeline
-        depth (int): the depth of the recursion (used to stop if it exeed a maximum recursion)
-        subtree_parent (Node): the parent node for the current step
-        allowed_divisions (list): the list of divisions values explored by the algorithm
-        max_depth (int): the maximum depth of the recursion
-        div_preferences (list | None): which division to accept at each level in case of multiple minima. If not None must have length [depth]
-    """
-    if depth >= max_depth:  # stop recursion because maximum depth is reached
-        bar_trees.InternalNode(
-            subtree_parent, ""
-        )  # we put an internal node without leaves that will be pruned later
-    elif all(
-        [e.timestamp == 0 for e in tim.events]
-    ):  # stop recursion if all events are on the left border of the timeline
-        bar_trees.LeafNode(subtree_parent, [e.musical_artifact for e in tim.events])
-    else:
-        recursive_choices = (
-            []
-        )  # list of subsubtrees parents corresponding to differen division values
-        for k in allowed_divisions:
-            subsubtree_parent = bar_trees.InternalNode(None, "")
-            for subtim in tim.split(k, normalize=True):
-                __timeline2rt(
-                    subtim,
-                    depth + 1,
-                    subsubtree_parent,
-                    allowed_divisions,
-                    max_depth,
-                    div_preferences,
-                )
-            recursive_choices.append(subsubtree_parent)
-        valid_choices = [n for n in recursive_choices if n.complete()]
-        if len(valid_choices) == 0:  # no valid choice available
-            bar_trees.InternalNode(
-                subtree_parent, ""
-            )  # we put an internal node without leaves that will be pruned later
-        else:
-            # find the best division value, i.e. the one generating the tree with minimum number of leaves
-            min_leaves = min([n.subtree_leaves() for n in valid_choices])
-            min_indices = [
-                i
-                for i, n in enumerate(valid_choices)
-                if n.subtree_leaves() == min_leaves
-            ]
-            # connect this to the subtree parent
-            if len(min_indices) > 1:  # if min is not unique
-                if div_preferences is None:  # we stop the recursion
-                    bar_trees.InternalNode(
-                        subtree_parent, ""
-                    )  # we put an internal node without leaves that will be pruned later
-                else:  # we select one based on div_preferences
-                    valid_choices = [
-                        n for i, n in enumerate(valid_choices) if i in min_indices
-                    ]
-                    min_indices = [
-                        i
-                        for i, n in enumerate(valid_choices)
-                        if len(n.children) == div_preferences[depth]
-                    ]
-                    # connect this to the subtree parent
-                    subtree_parent.add_child(valid_choices[min_indices[0]])
-                    valid_choices[min_indices[0]].parent = subtree_parent
-            else:  # connect this to the subtree parent
-                subtree_parent.add_child(valid_choices[min_indices[0]])
-                valid_choices[min_indices[0]].parent = subtree_parent
+# def timestamps2rhythm_tree(seq: np.array, depth: int, subtree_parent):
+#     if depth > 6:  # stop recursion because maximum depth is reached
+#         pass
+#     elif seq.size == 1:  # stop recursion (size can never be 0 from musical_split)
+#         LeafNode(subtree_parent, [list(seq)])
+#     else:
+#         recursive_choices = (
+#             []
+#         )  # list of subsubtrees parents corresponding to differen division values
+#         for k in [2, 3, 5, 7]:
+#             subsubtree_parent = InternalNode(None, "")
+#             for subseq in musical_split(seq, k):
+#                 timestamps2rhythm_tree(subseq, depth + 1, subsubtree_parent)
+#             recursive_choices.append(subsubtree_parent)
+#         # find the best division value (if it exists), i.e. the one generating the tree with minimum number of leaves
+#         min_leaves_subtree_index = np.argmin(
+#             [n.subtree_leaves() for n in recursive_choices]
+#         )
+#         # connect this to the subtree parent
+#         subtree_parent.add_child(recursive_choices[min_leaves_subtree_index])
+#         recursive_choices[min_leaves_subtree_index].parent = subtree_parent

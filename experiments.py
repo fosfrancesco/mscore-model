@@ -1,8 +1,8 @@
 #%%
 import music21 as m21
 from pathlib import Path
-from lib.m21utils import *
-from lib.bar_trees import *
+from score_model.m21utils import *
+from score_model.bar_trees import *
 import importlib
 
 # get environment

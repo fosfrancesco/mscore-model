@@ -1,7 +1,8 @@
 import music21 as m21
 from fractions import Fraction
-import lib.bar_trees as bar_trees
-import lib.music_sequences as music_sequences
+from .bar_trees import Root, NotationTree, InternalNode, LeafNode, timeline2rt
+from .music_sequences import Event, Timeline
+from .constant import REST_SYMBOL, CONTINUATION_SYMBOL
 import math
 import copy
 from itertools import islice
@@ -226,63 +227,6 @@ def m21_2_seq_struct(gn_list, struct_type):
     return seq_structure, grouping_info
 
 
-def accidental2string(acc_number):
-    """Return a string repr of accidentals."""
-    if acc_number is None:
-        return ""
-    elif acc_number > 0:
-        return "#" * int(acc_number)
-    elif acc_number < 0:
-        return "b" * int(abs(acc_number))
-    else:
-        return "n"
-
-
-def tie2string(tie):
-    """Return a string repr of a tie."""
-    if tie:
-        return "T"
-    else:
-        return ""
-
-
-def dot2string(dot):
-    """Return a string repr of dots."""
-    return "*" * int(dot)
-
-
-def gracenote2string(gracenote):
-    """Return a string repr of a gracenote."""
-    if gracenote:
-        return "gn"
-    else:
-        return ""
-
-
-def simplify_label(label):
-    """Create a simple string representation of the notation tree leaf node labels for a better visualization.
-
-    Args:
-        label (tuple): the label of a leaf node in a notation tree
-
-    Returns:
-        string: a simple but still unique representation of the leaf
-    """
-    # return a simpler label version
-    if label[0] == "R":
-        out = "R"
-    else:
-        out = "["
-        for pitch in label[0]:
-            out += "{}{}{},".format(
-                pitch["npp"], accidental2string(pitch["acc"]), tie2string(pitch["tie"]),
-            )
-        out = out[:-1]  # remove last comma
-        out += "]"
-    out += "{}{}{}".format(label[1], dot2string(label[2]), gracenote2string(label[3]))
-    return out
-
-
 def m21_2_notationtree(gn_list, tree_type):
     """Generate a notation tree from a list of music21 general notes corresponding to the gns in a voice in a measure.
 
@@ -297,9 +241,9 @@ def m21_2_notationtree(gn_list, tree_type):
     seq_structure, grouping_info = m21_2_seq_struct(gn_list, tree_type)
     leaf_label_list = [gn2label(gn) for gn in gn_list]
     # set the tree
-    root = bar_trees.Root()
+    root = Root()
     _recursive_tree_generation(seq_structure, leaf_label_list, grouping_info, root, 0)
-    return bar_trees.NotationTree(root, tree_type=tree_type)
+    return NotationTree(root, tree_type=tree_type)
 
 
 def _recursive_tree_generation(
@@ -313,12 +257,12 @@ def _recursive_tree_generation(
         if len(n[depth:]) == 0:  # no beaming/tuplets
             assert start_index is None, "no beaming/tuplets start_index "
             assert stop_index is None, "no beaming/tuplets stop_index "
-            bar_trees.LeafNode(local_root, leaf_label_list[i])
+            LeafNode(local_root, leaf_label_list[i])
         elif n[depth] == "partial":  # partial beaming (only for BTs)
             assert start_index is None, "partial beaming start_index "
             assert stop_index is None, "partial beaming stop_index "
             # there are more levels of beam otherwise we would be on the previous case
-            temp_int_node = bar_trees.InternalNode(local_root, grouping_info[i][depth])
+            temp_int_node = InternalNode(local_root, grouping_info[i][depth])
             _recursive_tree_generation(
                 [n], [leaf_label_list[i]], [grouping_info[i]], temp_int_node, depth + 1,
             )
@@ -334,7 +278,7 @@ def _recursive_tree_generation(
             assert start_index is not None, "stop start_index "
             assert stop_index is None, "stop stop_index "
             stop_index = i
-            temp_int_node = bar_trees.InternalNode(local_root, grouping_info[i][depth])
+            temp_int_node = InternalNode(local_root, grouping_info[i][depth])
             _recursive_tree_generation(
                 seq_structure[start_index : stop_index + 1],
                 leaf_label_list[start_index : stop_index + 1],
@@ -623,12 +567,12 @@ def m21tuple_from_info(tuplet_info):
 def m21_2_timeline(gn_list):
     # create the events
     events = [
-        music_sequences.Event(gn.offset, music_sequences.REST_SYMBOL)
+        Event(gn.offset, REST_SYMBOL)
         if gn.isRest
-        else music_sequences.Event(gn.offset, [p.midi for p in gn.pitches])
+        else Event(gn.offset, [p.midi for p in gn.pitches])
         for gn in gn_list
     ]
-    return music_sequences.Timeline(
+    return Timeline(
         events,
         start=0,
         end=sum([Fraction(gn.duration.quarterLength) for gn in gn_list]),
@@ -640,9 +584,7 @@ def m21_2_rhythmtree(
 ):
     # create the timeline
     tim = m21_2_timeline(gn_list)
-    return music_sequences.timeline2rt(
-        tim, allowed_divisions, max_depth, div_preferences
-    )
+    return timeline2rt(tim, allowed_divisions, max_depth, div_preferences)
 
 
 def reconstruct(score):

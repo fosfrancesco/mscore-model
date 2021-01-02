@@ -1,5 +1,6 @@
-import lib.m21utils as m21u
-import lib.music_sequences as music_sequences
+from .music_sequences import Event, Timeline
+from .constant import REST_SYMBOL, CONTINUATION_SYMBOL
+
 from fractions import Fraction
 from pathlib import Path
 import numpy as np
@@ -304,7 +305,7 @@ class NotationTree(Tree):
 
     def show(self, save=False, name="tree"):
         tree_repr = Tree.show(
-            self, save=False, name="tree", simplify_label=m21u.simplify_label
+            self, save=False, name="tree", simplify_label=simplify_label
         )
         return tree_repr
 
@@ -354,10 +355,7 @@ class RhythmTree(Tree):
                     )
                 else:
                     for gn in node.label:
-                        if (
-                            gn == music_sequences.CONTINUATION_SYMBOL
-                            or gn == music_sequences.REST_SYMBOL
-                        ):
+                        if gn == CONTINUATION_SYMBOL or gn == REST_SYMBOL:
                             pass  # a continuation symbol cannot be in a chord
                         elif not isinstance(gn, list):
                             raise TypeError(
@@ -398,11 +396,175 @@ class RhythmTree(Tree):
         leaves_timestamps = self.get_leaves_timestamps()
         leaves_labels = [node.label for node in self.get_leaf_nodes()]
         events = [
-            music_sequences.Event(t, pitches)
+            Event(t, pitches)
             for label, t in zip(leaves_labels, leaves_timestamps)
             for pitches in label
-            if pitches != music_sequences.CONTINUATION_SYMBOL
+            if pitches != CONTINUATION_SYMBOL
         ]
-        timeline = music_sequences.Timeline(events, start=0, end=1)
+        timeline = Timeline(events, start=0, end=1)
         return timeline.shift_and_rescale(start, end)
 
+
+def simplify_label(label):
+    """Create a simple string representation of the notation tree leaf node labels for a better visualization.
+
+    Args:
+        label (tuple): the label of a leaf node in a notation tree
+
+    Returns:
+        string: a simple but still unique representation of the leaf
+    """
+    # return a simpler label version
+    if label[0] == "R":
+        out = "R"
+    else:
+        out = "["
+        for pitch in label[0]:
+            out += "{}{}{},".format(
+                pitch["npp"], accidental2string(pitch["acc"]), tie2string(pitch["tie"]),
+            )
+        out = out[:-1]  # remove last comma
+        out += "]"
+    out += "{}{}{}".format(label[1], dot2string(label[2]), gracenote2string(label[3]))
+    return out
+
+
+def accidental2string(acc_number):
+    """Return a string repr of accidentals."""
+    if acc_number is None:
+        return ""
+    elif acc_number > 0:
+        return "#" * int(acc_number)
+    elif acc_number < 0:
+        return "b" * int(abs(acc_number))
+    else:
+        return "n"
+
+
+def tie2string(tie):
+    """Return a string repr of a tie."""
+    if tie:
+        return "T"
+    else:
+        return ""
+
+
+def dot2string(dot):
+    """Return a string repr of dots."""
+    return "*" * int(dot)
+
+
+def gracenote2string(gracenote):
+    """Return a string repr of a gracenote."""
+    if gracenote:
+        return "gn"
+    else:
+        return ""
+
+
+def timeline2rt(
+    tim: Timeline, allowed_divisions=[2, 3], max_depth=7, div_preferences=None
+):
+    """Generate a Rhythm Tree from a timeline.
+
+    Args:
+        tim (Timeline): the input timeline.
+        allowed_divisions (list, optional): division to consider. Defaults to [2, 3].
+        max_depth (int, optional): maximum depth to consider. Defaults to 7.
+        div_preferences ([type], optional): different depth may have different preferred div values. Defaults to None.
+
+    Returns:
+        RhythmTree: the rhythm tree.
+    """
+    tim = tim.shift_and_rescale(new_start=0, new_end=1)  # rescale the input timeline
+    root = Root()
+    __timeline2rt(tim, 0, root, allowed_divisions, max_depth, div_preferences)
+    if (
+        isinstance(root.children[0], InternalNode)
+        and len(root.children[0].children) == 0
+    ):
+        print("Multiple minimum leaves tree for the input timeline")
+        return None
+    else:
+        return RhythmTree(root)
+
+
+def __timeline2rt(
+    tim: Timeline,
+    depth: int,
+    subtree_parent,
+    allowed_divisions: list,
+    max_depth: int,
+    div_preferences,
+):
+    """Recursive function that create a Rhythm Tree from a timeline, called from timeline2rt.
+
+    It build the tree attaching at each step the best subtree to subtree_parent.
+    It work bottom-up making the choice for the tree with minimum number of leaves at each step.
+
+    Args:
+        tim (Timeline): the input timeline
+        depth (int): the depth of the recursion (used to stop if it exeed a maximum recursion)
+        subtree_parent (Node): the parent node for the current step
+        allowed_divisions (list): the list of divisions values explored by the algorithm
+        max_depth (int): the maximum depth of the recursion
+        div_preferences (list | None): which division to accept at each level in case of multiple minima. If not None must have length [depth]
+    """
+    if depth >= max_depth:  # stop recursion because maximum depth is reached
+        InternalNode(
+            subtree_parent, ""
+        )  # we put an internal node without leaves that will be pruned later
+    elif all(
+        [e.timestamp == 0 for e in tim.events]
+    ):  # stop recursion if all events are on the left border of the timeline
+        LeafNode(subtree_parent, [e.musical_artifact for e in tim.events])
+    else:
+        recursive_choices = (
+            []
+        )  # list of subsubtrees parents corresponding to differen division values
+        for k in allowed_divisions:
+            subsubtree_parent = InternalNode(None, "")
+            for subtim in tim.split(k, normalize=True):
+                __timeline2rt(
+                    subtim,
+                    depth + 1,
+                    subsubtree_parent,
+                    allowed_divisions,
+                    max_depth,
+                    div_preferences,
+                )
+            recursive_choices.append(subsubtree_parent)
+        valid_choices = [n for n in recursive_choices if n.complete()]
+        if len(valid_choices) == 0:  # no valid choice available
+            InternalNode(
+                subtree_parent, ""
+            )  # we put an internal node without leaves that will be pruned later
+        else:
+            # find the best division value, i.e. the one generating the tree with minimum number of leaves
+            min_leaves = min([n.subtree_leaves() for n in valid_choices])
+            min_indices = [
+                i
+                for i, n in enumerate(valid_choices)
+                if n.subtree_leaves() == min_leaves
+            ]
+            # connect this to the subtree parent
+            if len(min_indices) > 1:  # if min is not unique
+                if div_preferences is None:  # we stop the recursion
+                    InternalNode(
+                        subtree_parent, ""
+                    )  # we put an internal node without leaves that will be pruned later
+                else:  # we select one based on div_preferences
+                    valid_choices = [
+                        n for i, n in enumerate(valid_choices) if i in min_indices
+                    ]
+                    min_indices = [
+                        i
+                        for i, n in enumerate(valid_choices)
+                        if len(n.children) == div_preferences[depth]
+                    ]
+                    # connect this to the subtree parent
+                    subtree_parent.add_child(valid_choices[min_indices[0]])
+                    valid_choices[min_indices[0]].parent = subtree_parent
+            else:  # connect this to the subtree parent
+                subtree_parent.add_child(valid_choices[min_indices[0]])
+                valid_choices[min_indices[0]].parent = subtree_parent
