@@ -81,4 +81,13 @@ expected_num_voices = [2, 1, 2, 1]
 for i, measure in enumerate(score.parts[0].getElementsByClass(m21.stream.Measure)):
     print(len(measure.getElementsByClass(m21.stream.Voice)))
 # %%
-score.parts[0].getElementsByClass(m21.stream.Measure)[2].show()
+score = m21.converter.parse(str(Path("tests/test_musicxml/test_score2.musicxml")))
+# reconstruct(score)
+# score.parts[0].getElementsByClass(m21.stream.Measure)[2].show("text")
+score.show()
+# %%
+reconstruct(score)
+score.show()
+
+# %%
+score.show()
