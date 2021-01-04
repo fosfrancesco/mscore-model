@@ -1,7 +1,7 @@
 import music21 as m21
 from pathlib import Path
 from fractions import Fraction as Fr
-from lib.m21utils import (
+from score_model.m21utils import (
     is_tied,
     get_accidental_number,
     gn2pitches_list,
@@ -9,7 +9,6 @@ from lib.m21utils import (
     get_dots,
     is_grace,
     gn2label,
-    simplify_label,
     get_beams,
     get_tuplets,
     correct_tuplet,
@@ -125,19 +124,6 @@ def test_gn2label():
     n1 = m21.note.Note("E--5")
     n1.duration.quarterLength = 3
     assert gn2label(n1) == ([{"npp": "E5", "acc": -2, "tie": False}], 2, 1, False)
-
-
-def test_simplify_label1():
-    n1 = m21.note.Note("E--5")
-    n1.duration.quarterLength = 3
-    assert simplify_label(gn2label(n1)) == "[E5bb]2*"
-
-
-def test_simplify_label2():
-    n1 = m21.note.Note("D4")
-    n_grace = n1.getGrace()
-    n2 = m21.note.Note("E#5")
-    assert simplify_label(gn2label(n_grace)) == "[D4]4gn"
 
 
 def test_gn2label_musicxml1():

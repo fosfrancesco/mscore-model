@@ -1,4 +1,8 @@
-from lib.music_sequences import *
+from score_model.music_sequences import split_content, musical_split, Event, Timeline
+from score_model.constant import CONTINUATION_SYMBOL, REST_SYMBOL
+
+import numpy as np
+from fractions import Fraction
 
 
 def test_equally_split1():
@@ -142,29 +146,4 @@ def test_shift_and_rescale():
     assert np.array_equal(
         tim.shift_and_rescale(new_start=6, new_end=8), expected_timeline
     )
-
-
-def test_timeline2rt():
-    tim1 = Timeline([Event(0, [88]), Event(1, [90])], start=0, end=3)
-    rt1 = timeline2rt(tim1)
-    assert list(rt1.get_leaves_timestamps()) == [0, Fraction(1, 3), Fraction(2, 3)]
-    # test with grace notes
-    tim2 = Timeline(
-        [Event(0, [87]), Event(0, [88]), Event(1, [90, 94])], start=0, end=3
-    )
-    rt2 = timeline2rt(tim2)
-    assert list(rt2.get_leaves_timestamps()) == [0, Fraction(1, 3), Fraction(2, 3)]
-    assert rt2.get_timeline(0, 3) == tim2
-    # test with multiple minimum leaves trees
-    tim3 = Timeline([Event(Fraction(i, 3), [40]) for i in range(6)], start=0, end=2)
-    rt3 = timeline2rt(tim3)
-    assert rt3 is None
-    # test with multiple minimum leaves trees and div preferences
-    tim4 = Timeline([Event(Fraction(i, 3), [40]) for i in range(6)], start=0, end=2)
-    rt4 = timeline2rt(tim4, max_depth=3, div_preferences=[3, 2, 2])
-    assert len(rt4.get_leaf_nodes()[0].parent.children) == 2
-    # test with multiple minimum leaves trees and div preferences2
-    tim5 = Timeline([Event(Fraction(i, 3), [40]) for i in range(6)], start=0, end=2)
-    rt5 = timeline2rt(tim5, max_depth=3, div_preferences=[2, 3, 3])
-    assert len(rt5.get_leaf_nodes()[0].parent.children) == 3
 
