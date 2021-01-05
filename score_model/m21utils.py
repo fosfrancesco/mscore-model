@@ -599,7 +599,6 @@ def reconstruct(score):
 
     # determine the expected type of stream, depending on the current stream
     if isinstance(score, m21.stream.Score):
-        score.makeMeasures(inPlace=True)
         expected_type = m21.stream.Part
     elif isinstance(score, m21.stream.Part):
         expected_type = m21.stream.Measure
@@ -649,11 +648,11 @@ def model_score(score):
     """Takes any m21 score, reorganizes it, and compute notation trees"""
     reconstruct(score)
     score_notation_tree(score)
-    test_model_score(score)
+    _test_model_score(score)
     return score
 
 
-def test_model_score(score):
+def _test_model_score(score):
     error = "Model Score Error : "
     if isinstance(score, m21.stream.Score):
         assert len(score.getElementsByClass("Part")) > 0, (
@@ -667,6 +666,12 @@ def test_model_score(score):
         assert len(score.getElementsByClass("Voice")) > 0, (
             error + "The measure has no voices"
         )
-        assert isinstance(score, Voice), error + "Wrong voice class type"
     else:
         return
+
+    iterator = score.getElementsByClass([m21.stream.Stream, m21.note.GeneralNote])
+
+    for item in iterator:
+        if isinstance(score, m21.stream.Measure):
+            assert isinstance(item, Voice), error + "Wrong voice class type" + str(type(item))
+        _test_model_score(item)
