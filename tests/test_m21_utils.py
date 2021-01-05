@@ -20,6 +20,7 @@ from score_model.m21utils import (
     m21_2_timeline,
     m21_2_rhythmtree,
     reconstruct,
+    model_score,
 )
 
 
@@ -559,4 +560,46 @@ def test_reconstruct3():
         assert (
             len(measure.getElementsByClass(m21.stream.Voice)) == expected_num_voices[i]
         )
+
+def test_beaming_start_index():
+    files = [
+      '/Users/lyrodrig/datasets/qparse-test/lamarque_dataset/musicxml/374-Bizet-seguedille.xml',
+      '/Users/lyrodrig/datasets/qparse-test/lamarque_dataset/musicxml/370-Beethoven-quatuor3op59.xml',
+      '/Users/lyrodrig/datasets/qparse-test/lamarque_dataset/musicxml/346-Chopin-fantaisie.xml',
+      '/Users/lyrodrig/datasets/qparse-test/lamarque_dataset/musicxml/309-Poulenc-improvisation6.xml',
+    ]
+
+    for xmlfile in files:
+        score = m21.converter.parse(str(Path(xmlfile)))
+        model_score(score)
+
+def test_continue_start_index():
+    files = [
+      '/Users/lyrodrig/datasets/qparse-test/lamarque_dataset/musicxml/101-Beethoven-bagatelle4op33.xml',
+    ]
+
+    for xmlfile in files:
+        score = m21.converter.parse(str(Path(xmlfile)))
+        model_score(score)
+
+def test_start_beam_tuplet_start_index():
+    files = [
+      '/Users/lyrodrig/datasets/qparse-test/lamarque_dataset/musicxml/407-Beethoven-sonate1op10.xml',
+      '/Users/lyrodrig/datasets/qparse-test/lamarque_dataset/musicxml/171-Mozart-concertobasson.xml',
+      '/Users/lyrodrig/datasets/qparse-test/lamarque_dataset/musicxml/348-Mozart-flutemarche.xml',
+      '/Users/lyrodrig/datasets/qparse-test/lamarque_dataset/musicxml/308-Beethoven-sonateop81.xml',
+    ]
+
+    for xmlfile in files:
+        score = m21.converter.parse(str(Path(xmlfile)))
+        model_score(score)
+
+def test_durationNumber_from_complex():
+    files = [
+        '/Users/lyrodrig/datasets/qparse-test/lamarque_dataset/musicxml/141-Puig-Roget.xml',
+    ]
+
+    for xmlfile in files:
+        score = m21.converter.parse(str(Path(xmlfile)))
+        model_score(score)
 
