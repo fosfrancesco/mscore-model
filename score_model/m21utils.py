@@ -640,7 +640,8 @@ def score_notation_tree(score):
     """Replaces the voices with score model voices"""
     for el in score.recurse():
         if isinstance(el, m21.stream.Voice):
-            new_voice = Voice(el)
+            print(el)
+            new_voice = Voice(el.offset)
             score.replace(el, new_voice, recurse=True)
 
 
@@ -673,5 +674,7 @@ def _test_model_score(score):
 
     for item in iterator:
         if isinstance(score, m21.stream.Measure):
-            assert isinstance(item, Voice), error + "Wrong voice class type" + str(type(item))
+            assert isinstance(item, Voice), (
+                error + "Wrong voice class type" + str(type(item))
+            )
         _test_model_score(item)
