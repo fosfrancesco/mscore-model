@@ -22,6 +22,6 @@ setuptools.setup(
     ],
     keywords="music musical score",
     license="MIT",
-    python_requires=">=3.6",
+    python_requires=">=3.5",
 )
 
