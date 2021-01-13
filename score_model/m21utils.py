@@ -195,6 +195,62 @@ def correct_tuplet(tuplets_list):
     return new_tuplets_list
 
 
+def correct_beamings(beamings_list, gn_list):
+    """Correct the sequential beaming structure.
+
+    In case of rests between two beamed notes, we will have a sequence of beamings [start], [partial], [stop].
+    this function correct that specific case, putting a "continue" instead of partial.
+
+    Args:
+        beamings_list (list): the sequential structure of beamings
+
+    Raises:
+        TypeError: Other errors are presents in the input beaming_list.
+
+    Returns:
+        list: a corrected sequential structure for beamings.
+    """
+    new_beaming_list = copy.deepcopy(beamings_list)
+    # find groups of consecutive rests (also of size 1)
+    index_to_check = []
+    start = -1
+    end = -1
+    for i, gn in enumerate(gn_list):
+        if gn.isRest:
+            if start == -1:  # first rest of the sequence
+                start = i
+                end = i
+            else:  # multiple consecutive rests, update end
+                end = i
+        else:
+            if (
+                start != -1 and start != 0
+            ):  # first note after a sequence of rests, and we don't consider rests at the beginning
+                index_to_check.append((start - 1, end + 1))
+                start = -1  # reset start
+                end = -1  # reset end
+            else:
+                start = -1  # reset start
+                end = -1  # reset end
+    # now check if around the rests there are groups of beamed notes with start and end
+    for i2check in index_to_check:
+        max_beams = min(
+            [len(beamings_list[i2check[0]]), len(beamings_list[i2check[1]])]
+        )
+        for i in range(max_beams):
+            if (
+                beamings_list[i2check[0]][i] == "start"
+                or beamings_list[i2check[0]][i] == "continue"
+            ) and (
+                beamings_list[i2check[1]][i] == "stop"
+                or beamings_list[i2check[1]][i] == "continue"
+            ):
+                # change the beam of the rests in between from partial to continue
+                for ii in range(i2check[0] + 1, i2check[1]):
+                    new_beaming_list[ii][i] = "continue"
+    return new_beaming_list
+
+
 def m21_2_seq_struct(gn_list, struct_type):
     """Generate a sequential representation of the structure (beamings and tuplets) from the general notes in a single measure (and a single voice).
 
@@ -213,6 +269,8 @@ def m21_2_seq_struct(gn_list, struct_type):
     """
     if struct_type == "beamings":
         seq_structure = [get_beams(gn) for gn in gn_list]
+        # correct in case of beamed rests problems
+        seq_structure = correct_beamings(seq_structure, gn_list)
         grouping_info = [
             ["" for ee in e] for e in seq_structure
         ]  # useless for beamings
@@ -641,7 +699,7 @@ def score_notation_tree(score):
     for el in score.recurse():
         if isinstance(el, m21.stream.Voice):
             print(el)
-            new_voice = Voice(el.offset)
+            new_voice = Voice(el)
             score.replace(el, new_voice, recurse=True)
 
 

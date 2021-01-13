@@ -412,6 +412,7 @@ def test_m21_2_notationtree2():
 
 
 def test_m21_2_notationtree3():
+    # test from lamarque dataset. It has problems in the xml encoding of the gracenotes
     score = m21.converter.parse(
         str(Path("tests/test_musicxml/101-Beethoven-bagatelle4op33.musicxml"))
     )
@@ -419,6 +420,20 @@ def test_m21_2_notationtree3():
     measures = score.parts[0].getElementsByClass("Measure")
     # third measure is problematic because of grace notes
     m = measures[2]
+    voice = m.getElementsByClass("Voice")[0]
+    gns_m3 = voice.getElementsByClass("GeneralNote")
+    nt_bt = m21_2_notationtree(gns_m3, "beamings")
+    nt_tt = m21_2_notationtree(gns_m3, "tuplets")
+
+
+def test_m21_2_notationtree4():
+    score = m21.converter.parse(
+        str(Path("tests/test_musicxml/51_fantasiestucke_op.12-2_aufschwung.xml"))
+    )
+    reconstruct(score)
+    measures = score.parts[0].getElementsByClass("Measure")
+    # third measure is problematic because of grace notes
+    m = measures[5]
     voice = m.getElementsByClass("Voice")[0]
     gns_m3 = voice.getElementsByClass("GeneralNote")
     nt_bt = m21_2_notationtree(gns_m3, "beamings")
@@ -574,6 +589,34 @@ def test_reconstruct3():
         assert (
             len(measure.getElementsByClass(m21.stream.Voice)) == expected_num_voices[i]
         )
+
+
+def test_model_score1():
+    score = m21.converter.parse(
+        str(
+            Path(
+                "tests/test_musicxml/01_Waltz_in_E_flat_Grande_Valse_Brillante_Op.18.musicxml"
+            )
+        )
+    )
+    model_score(score)
+    expected_num_voices = [1, 1, 1, 1, 1, 1, 1, 1]
+    for i, measure in enumerate(score.parts[0].getElementsByClass(m21.stream.Measure)):
+        assert (
+            len(measure.getElementsByClass(m21.stream.Voice)) == expected_num_voices[i]
+        )
+
+
+def test_model_score2():
+    score = m21.converter.parse(
+        str(Path("tests/test_musicxml/51_fantasiestucke_op.12-2_aufschwung.xml"))
+    )
+    model_score(score)
+
+
+def test_model_score3():
+    score = m21.converter.parse(str(Path("tests/test_musicxml/msc-283.xml")))
+    model_score(score)
 
 
 def test_beaming_start_index():

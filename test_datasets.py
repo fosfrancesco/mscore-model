@@ -5,12 +5,15 @@ from colorama import Fore, init
 
 init(autoreset=True)
 
-datasets = {
-    "/Users/lyrodrig/datasets/asap-dataset",
-    "/Users/lyrodrig/datasets/qparse-test/gmmt_dataset/corrected_musicxml",
-    "/Users/lyrodrig/datasets/qparse-test/gmmt_dataset/musicxml",
-    "/Users/lyrodrig/datasets/qparse-test/lamarque_dataset/musicxml",
-}
+# datasets = {
+#     "/Users/lyrodrig/datasets/asap-dataset",
+#     "/Users/lyrodrig/datasets/qparse-test/gmmt_dataset/corrected_musicxml",
+#     "/Users/lyrodrig/datasets/qparse-test/gmmt_dataset/musicxml",
+#     "/Users/lyrodrig/datasets/qparse-test/lamarque_dataset/musicxml",
+# }
+
+datasets = {"../qparse-test/gmmt_dataset/musicxml/"}
+
 
 hashtable = {}
 
