@@ -1,3 +1,4 @@
+from typing import Type
 import numpy as np
 from fractions import Fraction
 from .constant import CONTINUATION_SYMBOL
@@ -71,6 +72,14 @@ class Timeline:
                 and self.end == other.end
             )
 
+    def __add__(self, other):
+        shifted_other = other.shift_and_rescale(new_start=self.end)
+        return Timeline(
+            np.concatenate([self.events, shifted_other.events]),
+            start=self.start,
+            end=shifted_other.end,
+        )
+
     def split(self, k: int, normalize: bool = False):
         # compute the split points
         split_points = [
@@ -97,7 +106,20 @@ class Timeline:
             for i, ind in enumerate(zip(split_indices[:-1], split_indices[1:]))
         ]
 
-    def shift_and_rescale(self, new_start=0, new_end=1):
+    def shift_and_rescale(self, new_start=None, new_end=None):
+        # if new_start and new end are not provided, default to 0 and 1
+        if new_start is None and new_end is None:
+            new_start = 1
+            new_end = 1
+        # if only new start is provided, we set new_end to keep the same lenght
+        elif (not new_start is None) and new_end is None:
+            new_end = new_start + (self.end - self.start)
+        # if they are both provided, pass
+        elif (not new_start is None) and (not new_end is None):
+            pass
+        # if only new end is defined, exception
+        else:
+            raise Exception("you must define new_end if you define new_start")
         return Timeline(
             (self.events - self.start)
             * Fraction(new_end - new_start, self.end - self.start)
@@ -105,6 +127,40 @@ class Timeline:
             start=new_start,
             end=new_end,
         )
+
+    def to_json(self, time_type):
+        event_list = []
+        if time_type == "onset":
+            for event in self.events:
+                event_list.append(
+                    {
+                        "onset": {
+                            "numerator": Fraction(event.timestamp).numerator,
+                            "denominator": Fraction(event.timestamp).denominator,
+                        },
+                        "musical_artifact": event.musical_artifact,
+                    }
+                )
+            return event_list
+        if time_type == "duration":
+            onsets = [e.timestamp for e in self.events]
+            durations = [of - on for on, of in zip(onsets, onsets[1:] + [self.end])]
+            for ie, event in enumerate(self.events):
+                event_list.append(
+                    {
+                        "duration": {
+                            "numerator": Fraction(durations[ie]).numerator,
+                            "denominator": Fraction(durations[ie]).denominator,
+                        },
+                        "musical_artifact": event.musical_artifact,
+                    }
+                )
+            return event_list
+        else:
+            raise TypeError(
+                time_type,
+                "is not a valid type. time_type must be either 'onset' or 'duration'",
+            )
 
 
 def split_content(seq, k: int, interval=(0, 1)):

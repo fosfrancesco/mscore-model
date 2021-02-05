@@ -1,4 +1,5 @@
 import copy
+from score_model.music_sequences import Timeline
 import music21 as m21
 
 from pathlib import Path
@@ -33,4 +34,28 @@ class ScoreModel:
                 voices[ip].extend(notes)
 
         return [m21u.m21_2_timeline(v) for v in voices]
+
+    def get_timelines(self):
+        # return one timeline for each voice.
+        # TODO: Consider all voices, for now works with only the first of each part
+        # TODO: merge if there are continuations at the beginning of the measures
+        timelines = []
+        for ip, p in enumerate(self.m21_score.parts):
+            voice_tim = None  # empty timeline for the voice
+            for im, m in enumerate(p.getElementsByClass(m21.stream.Measure)):
+                # consider only the first voice (TO UPDATE)
+                voice = m.getElementsByClass(m21.stream.Voice)[0]
+                gn_list = voice.getElementsByClass(m21.note.GeneralNote)
+                m_tim = m21u.m21_2_timeline(gn_list).shift_and_rescale(
+                    0, 1
+                )  # force each measure to be in the interval 0-1
+                voice_tim = m_tim if voice_tim is None else voice_tim + m_tim
+            timelines.append(voice_tim)
+        return timelines
+
+    def get_timelines_json(self):
+        out_json = {"name": "piece_name", "grammar": "grammar_name", "voices": []}
+        for tim in self.get_timelines():
+            out_json["voices"].append(tim.to_json("duration"))
+        return out_json
 

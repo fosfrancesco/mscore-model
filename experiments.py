@@ -4,13 +4,32 @@ from pathlib import Path
 from score_model.m21utils import *
 import score_model
 
-score = score_model.ScoreModel("tests/test_musicxml/test_score2.musicxml")
+score = score_model.ScoreModel("tests/test_musicxml/test_multipart.musicxml")
+len(score.m21_score.parts)
+
+#%%
+m21s = m21.converter.parse("tests/test_musicxml/test_score1.musicxml")
+m21s.show("text")
 
 #%%
 tim = score.get_voices()
 print(tim)
 #%%
+m21.environment.set(
+    "musescoreDirectPNGPath", "C:\\Program Files (x86)\\MuseScore 2\\bin\\MuseScore.exe"
+)
+m21.environment.set(
+    "musicxmlPath", "C:\\Program Files (x86)\\MuseScore 2\\bin\\MuseScore.exe"
+)
 
+env = m21.environment.Environment()
+
+# check the path
+print("Environment settings:")
+print("musicXML:  ", env["musicxmlPath"])
+print("musescore: ", env["musescoreDirectPNGPath"])
+
+#%%
 files = [
     str(Path("tests/test_musicxml/101-Beethoven-bagatelle4op33.xml")),
 ]
@@ -20,25 +39,18 @@ for xmlfile in files:
     model_score(score)
 
 # #%%
-# # get environment
-# env = m21.environment.Environment()
+# get environment
+env = m21.environment.Environment()
 
-# # check the path
-# print("Environment settings:")
-# print("musicXML:  ", env["musicxmlPath"])
-# print("musescore: ", env["musescoreDirectPNGPath"])
+# check the path
+print("Environment settings:")
+print("musicXML:  ", env["musicxmlPath"])
+print("musescore: ", env["musescoreDirectPNGPath"])
 
-# # set path if necessary
-# # env['musicxmlPath'] = 'path/to/your/musicXmlApplication'
-# # env['musescoreDirectPNGPath'] = 'path/to/your/museScore'
+# set path if necessary
+env["musicxmlPath"] = "path/to/your/musicXmlApplication"
+env["musescoreDirectPNGPath"] = "path/to/your/museScore"
 
-# # m21.environment.set(
-# #     "musescoreDirectPNGPath",
-# #     "C:/Program Files (x86)/MuseScore 2/bin/MuseScore.exe"
-# # )
-# # m21.environment.set(
-# #     "musicxmlPath", "C:/Program Files (x86)/MuseScore 2/bin/MuseScore.exe"
-# # )
 
 # # us = m21.environment.UserSettings()
 # # # us.create()
@@ -106,3 +118,5 @@ for xmlfile in files:
 
 # # %%
 # score.show()
+
+# %%

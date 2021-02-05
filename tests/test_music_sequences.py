@@ -147,3 +147,82 @@ def test_shift_and_rescale():
         tim.shift_and_rescale(new_start=6, new_end=8), expected_timeline
     )
 
+
+def test_timeline_export_json():
+    # testing the timeline export json function
+    timestamps = np.array([1, 1 + Fraction(1, 3)])
+    musical_artifacts = np.array([["C1", "C2"], REST_SYMBOL])
+    events = [Event(t, m) for t, m in zip(timestamps, musical_artifacts)]
+    tim = Timeline(events, start=1, end=2)
+    expected_json = [
+        {
+            "duration": {"numerator": 1, "denominator": 3,},
+            "musical_artifact": ["C1", "C2"],
+        },
+        {
+            "duration": {"numerator": 2, "denominator": 3,},
+            "musical_artifact": REST_SYMBOL,
+        },
+    ]
+    assert tim.to_json("duration") == expected_json
+
+
+def test_timeline_export_json2():
+    # testing the timeline export json function
+    timestamps = np.array([0, Fraction(1, 3), 1])
+    musical_artifacts = np.array([["C1", "C2"], REST_SYMBOL, ["E2"]])
+    events = [Event(t, m) for t, m in zip(timestamps, musical_artifacts)]
+    tim = Timeline(events, start=0, end=2)
+    expected_json = [
+        {
+            "duration": {"numerator": 1, "denominator": 3},
+            "musical_artifact": ["C1", "C2"],
+        },
+        {
+            "duration": {"numerator": 2, "denominator": 3},
+            "musical_artifact": REST_SYMBOL,
+        },
+        {"duration": {"numerator": 1, "denominator": 1}, "musical_artifact": ["E2"]},
+    ]
+    assert tim.to_json("duration") == expected_json
+
+
+def test_timeline_export_json3():
+    # testing the timeline export json function
+    timestamps = np.array([0, Fraction(1, 3), 1])
+    musical_artifacts = np.array([["C1", "C2"], REST_SYMBOL, ["E2"]])
+    events = [Event(t, m) for t, m in zip(timestamps, musical_artifacts)]
+    tim = Timeline(events, start=0, end=2)
+    expected_json = [
+        {
+            "onset": {"numerator": 0, "denominator": 1},
+            "musical_artifact": ["C1", "C2"],
+        },
+        {"onset": {"numerator": 1, "denominator": 3}, "musical_artifact": REST_SYMBOL,},
+        {"onset": {"numerator": 1, "denominator": 1}, "musical_artifact": ["E2"]},
+    ]
+    assert tim.to_json("onset") == expected_json
+
+
+def test_timeline_add():
+    # first timeline
+    timestamps1 = np.array([0, Fraction(1, 3), 1])
+    musical_artifacts1 = np.array([["C1", "C2"], REST_SYMBOL, ["E2"]])
+    events1 = [Event(t, m) for t, m in zip(timestamps1, musical_artifacts1)]
+    tim1 = Timeline(events1, start=0, end=2)
+    # second timeline
+    timestamps2 = np.array([0, Fraction(1, 2)])
+    musical_artifacts2 = np.array([["A1"], ["A2"]])
+    events2 = [Event(t, m) for t, m in zip(timestamps2, musical_artifacts2)]
+    tim2 = Timeline(events2, start=0, end=1)
+
+    expected_timeline_events = [["C1", "C2"], REST_SYMBOL, ["E2"], ["A1"], ["A2"]]
+    expected_timeline_onsets = [0, Fraction(1, 3), 1, 2, Fraction(5, 2)]
+
+    added_tim = tim1 + tim2
+    assert (
+        list([e.musical_artifact for e in added_tim.events]) == expected_timeline_events
+    )
+    assert list([e.timestamp for e in added_tim.events]) == expected_timeline_onsets
+    assert added_tim.start == 0
+    assert added_tim.end == 3

@@ -86,7 +86,7 @@ def gn2pitches_list(gn):
     else:
         if gn.isChord:
             out = []
-            for n in sorted(gn.notes):
+            for n in sorted(gn._notes):
                 out.append(
                     {
                         "npp": n.pitch.step + str(n.pitch.octave),
@@ -630,11 +630,12 @@ def m21_2_timeline(gn_list):
         else Event(gn.offset, [p.midi for p in gn.pitches])
         for gn in gn_list
     ]
-    return Timeline(
+    tim = Timeline(
         events,
         start=0,
         end=sum([Fraction(gn.duration.quarterLength) for gn in gn_list]),
     )
+    return tim
 
 
 def m21_2_rhythmtree(
