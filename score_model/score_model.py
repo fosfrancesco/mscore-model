@@ -11,7 +11,9 @@ class ScoreModel:
     """Class that represent a score
     """
 
-    def __init__(self, musicxml_path, auto_format=True, produce_trees=False):
+    def __init__(
+        self, musicxml_path: str, auto_format: bool = True, produce_trees: bool = False
+    ):
         """Initialize the ScoreModel from a music21 score object
 
         Args:
@@ -20,8 +22,9 @@ class ScoreModel:
             produce_trees (bool, optional): Produce the BT and TT for each measure. Defaults to False.
         """
         self.m21_score = m21.converter.parse(str(Path(musicxml_path)))
-        m21u.reconstruct(self.m21_score)
-        print("created")
+        self.produce_trees = produce_trees
+        if auto_format:
+            m21u.reconstruct(self.m21_score)
 
     def get_voices(self):
         voices = []

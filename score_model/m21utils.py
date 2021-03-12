@@ -1,3 +1,4 @@
+from typing import Iterable
 import music21 as m21
 from fractions import Fraction
 from .bar_trees import Root, NotationTree, InternalNode, LeafNode, timeline2rt
@@ -285,16 +286,24 @@ def m21_2_seq_struct(gn_list, struct_type):
     return seq_structure, grouping_info
 
 
-def m21_2_notationtree(gn_list, tree_type):
+def m21_2_notationtree(
+    gn_list: Iterable[m21.note.GeneralNote],
+    tree_type: str,
+    consider_grace_notes: bool = False,
+) -> NotationTree:
     """Generate a notation tree from a list of music21 general notes corresponding to the gns in a voice in a measure.
 
     Args:
-        gn_list (list): a list of music21 GeneralNote objects
-        tree_type (string): either "beamings" or "tuplets" 
+        gn_list (Iterable[m21.note.GeneralNote]): a list of music21 GeneralNote objects
+        tree_type (str): either "beamings" or "tuplets" 
+        consider_grace_notes (bool) : consider or not grace notes in the structure. WARNING only simple grace notes groups are supported
 
     Returns:
-        NotationTree : the notation tree (NT or TT)
+        NotationTree: the notation tree (BT or TT)
     """
+    if not consider_grace_notes:  # delete grace notes from the input list
+        gn_list = [e for e in gn_list if not is_grace(e)]
+
     # extract information from general note
     seq_structure, grouping_info = m21_2_seq_struct(gn_list, tree_type)
     leaf_label_list = [gn2label(gn) for gn in gn_list]
@@ -646,53 +655,64 @@ def m21_2_rhythmtree(
     return timeline2rt(tim, allowed_divisions, max_depth, div_preferences)
 
 
-def reconstruct(score):
+def expected_stream_constituent_type(stream):
+    """determines the expected type of constituents of a certain type of stream"""
+    if isinstance(stream, m21.stream.Score):
+        return m21.stream.Part
+    elif isinstance(stream, m21.stream.Part):
+        return m21.stream.Measure
+    elif isinstance(stream, m21.stream.Measure):
+        return m21.stream.Voice
+    else:
+        raise TypeError("The stream in input is neither Score, Part or Measure")
+
+
+def reconstruct(stream):
     """ This function ensures that the score is systematically of the structure : Score -> Part -> Measure -> Voice
     It recursively goes through the whole score, if the type of stream is not as expected,
     a new stream is inserted.
 
-    Args: score (m21.stream) : a stream of m21 objects
+    Args: stream (m21.stream) : a stream of m21 objects
 
     """
-    empty = True
-
-    # determine the expected type of stream, depending on the current stream
-    if isinstance(score, m21.stream.Score):
-        expected_type = m21.stream.Part
-    elif isinstance(score, m21.stream.Part):
-        expected_type = m21.stream.Measure
-    elif isinstance(score, m21.stream.Measure):
-        expected_type = m21.stream.Voice
-    else:
+    # exit condition for the reconstruct
+    if isinstance(stream, (m21.stream.Voice, m21.note.GeneralNote)):
         return
 
+    empty = True
+    # determine the expected type of stream, depending on the current stream
+    expected_type = expected_stream_constituent_type(stream)
+
     # iterate through only Streams and Notes, this ensures everything else stays in the right place
-    iterator = score.getElementsByClass([m21.stream.Stream, m21.note.GeneralNote])
-    stream = m21.stream.Stream()
+    iterator = stream.getElementsByClass([m21.stream.Stream, m21.note.GeneralNote])
+    new_stream = expected_type()
 
     # if the item in the iterator is not of the expexted type :
     # it is added to temporary stream, from which the new node will be initialized
     for item in iterator:
         if not isinstance(item, expected_type):
             empty = False
-            stream.append(item)
-            score.remove(item)
+            new_stream.append(item)
+            stream.remove(item)
         reconstruct(item)
 
-    # if a gap was found, create the stream, and add to the score
+    # if a gap was found, add the new_stream to the stream
     if not empty:
-        new_node = expected_type(stream)
-        score.append(new_node)
+        stream.append(new_stream)
         # the new node must be also reconstructed in case there's more than one gap
         # (for ex: a score with only notes)
-        reconstruct(new_node)
+        reconstruct(new_stream)
 
 
 class Voice(m21.stream.Voice):
-    def __init__(self, stream):
+    def __init__(self, stream, consider_grace_notes: bool = False):
         m21.stream.Voice.__init__(self, stream, id=stream.id)
-        self.beaming_tree = m21_2_notationtree(stream, "beamings")
-        self.tuplet_tree = m21_2_notationtree(stream, "tuplets")
+        self.beaming_tree = m21_2_notationtree(
+            [e for e in stream], "beamings", consider_grace_notes
+        )
+        self.tuplet_tree = m21_2_notationtree(
+            [e for e in stream], "tuplets", consider_grace_notes
+        )
 
 
 def score_notation_tree(score):
@@ -704,15 +724,15 @@ def score_notation_tree(score):
             score.replace(el, new_voice, recurse=True)
 
 
-def model_score(score):
+def add_nt_to_score(score):
     """Takes any m21 score, reorganizes it, and compute notation trees"""
     reconstruct(score)
     score_notation_tree(score)
-    _test_model_score(score)
+    _test_add_nt_to_score(score)
     return score
 
 
-def _test_model_score(score):
+def _test_add_nt_to_score(score):
     error = "Model Score Error : "
     if isinstance(score, m21.stream.Score):
         assert len(score.getElementsByClass("Part")) > 0, (
@@ -733,7 +753,7 @@ def _test_model_score(score):
 
     for item in iterator:
         if isinstance(score, m21.stream.Measure):
-            assert isinstance(item, Voice), (
+            assert isinstance(item, expected_stream_constituent_type(score)), (
                 error + "Wrong voice class type" + str(type(item))
             )
-        _test_model_score(item)
+        _test_add_nt_to_score(item)

@@ -20,7 +20,7 @@ from score_model.m21utils import (
     m21_2_timeline,
     m21_2_rhythmtree,
     reconstruct,
-    model_score,
+    add_nt_to_score,
 )
 
 
@@ -401,8 +401,8 @@ def test_m21_2_notationtree2():
     measures = score.parts[0].getElementsByClass("Measure")
     # measure 3 (grace note)
     gns_m3 = measures[3].getElementsByClass("GeneralNote")
-    nt_bt = m21_2_notationtree(gns_m3, "beamings")
-    nt_tt = m21_2_notationtree(gns_m3, "tuplets")
+    nt_bt = m21_2_notationtree(gns_m3, "beamings", consider_grace_notes=True)
+    nt_tt = m21_2_notationtree(gns_m3, "tuplets", consider_grace_notes=True)
     assert len(nt_bt.get_nodes()) == 6
     assert len(nt_bt.get_leaf_nodes()) == 4
     assert len(nt_bt.root.children) == 4
@@ -445,8 +445,8 @@ def test_linear_beaming_from_nt():
     measures = score.parts[0].getElementsByClass("Measure")
     for m in measures:
         gns = m.getElementsByClass("GeneralNote")
-        bt = m21_2_notationtree(gns, "beamings")
-        tt = m21_2_notationtree(gns, "tuplets")
+        bt = m21_2_notationtree(gns, "beamings", consider_grace_notes=True)
+        tt = m21_2_notationtree(gns, "tuplets", consider_grace_notes=True)
         assert m21_2_seq_struct(gns, "beamings")[0] == nt2seq_structure(bt)[0]
         assert m21_2_seq_struct(gns, "tuplets")[0] == nt2seq_structure(tt)[0]
         assert m21_2_seq_struct(gns, "beamings")[1] == nt2seq_structure(bt)[1]
@@ -458,8 +458,8 @@ def test_nt2general_notes1():
     measures = score.parts[0].getElementsByClass("Measure")
     for m in measures:
         gns = m.getElementsByClass("GeneralNote")
-        bt = m21_2_notationtree(gns, "beamings")
-        tt = m21_2_notationtree(gns, "tuplets")
+        bt = m21_2_notationtree(gns, "beamings", consider_grace_notes=True)
+        tt = m21_2_notationtree(gns, "tuplets", consider_grace_notes=True)
         out_gns = nt2general_notes(bt, tt)
         # check beamings and tuplets
         assert m21_2_seq_struct(gns, "beamings") == m21_2_seq_struct(
@@ -591,7 +591,7 @@ def test_reconstruct3():
         )
 
 
-def test_model_score1():
+def test_add_nt_to_score1():
     score = m21.converter.parse(
         str(
             Path(
@@ -599,7 +599,7 @@ def test_model_score1():
             )
         )
     )
-    model_score(score)
+    add_nt_to_score(score)
     expected_num_voices = [1, 1, 1, 1, 1, 1, 1, 1]
     for i, measure in enumerate(score.parts[0].getElementsByClass(m21.stream.Measure)):
         assert (
@@ -607,60 +607,24 @@ def test_model_score1():
         )
 
 
-def test_model_score2():
+def test_add_nt_to_score2():
     score = m21.converter.parse(
         str(Path("tests/test_musicxml/51_fantasiestucke_op.12-2_aufschwung.xml"))
     )
-    model_score(score)
+    add_nt_to_score(score)
 
 
-def test_model_score3():
+def test_add_nt_to_score3():
     score = m21.converter.parse(str(Path("tests/test_musicxml/msc-283.xml")))
-    model_score(score)
-
-
-def test_beaming_start_index():
-    files = [
-        "/Users/lyrodrig/datasets/qparse-test/lamarque_dataset/musicxml/374-Bizet-seguedille.xml",
-        "/Users/lyrodrig/datasets/qparse-test/lamarque_dataset/musicxml/370-Beethoven-quatuor3op59.xml",
-        "/Users/lyrodrig/datasets/qparse-test/lamarque_dataset/musicxml/346-Chopin-fantaisie.xml",
-        "/Users/lyrodrig/datasets/qparse-test/lamarque_dataset/musicxml/309-Poulenc-improvisation6.xml",
-    ]
-
-    for xmlfile in files:
-        score = m21.converter.parse(str(Path(xmlfile)))
-        model_score(score)
+    add_nt_to_score(score)
 
 
 def test_continue_start_index():
     files = [
-        str(Path("tests/test_musicxml/101-Beethoven-bagatelle4op33.xml")),
+        str(Path("tests/test_musicxml/101-Beethoven-bagatelle4op33.musicxml")),
     ]
 
     for xmlfile in files:
         score = m21.converter.parse(str(Path(xmlfile)))
-        model_score(score)
-
-
-def test_start_beam_tuplet_start_index():
-    files = [
-        "/Users/lyrodrig/datasets/qparse-test/lamarque_dataset/musicxml/407-Beethoven-sonate1op10.xml",
-        "/Users/lyrodrig/datasets/qparse-test/lamarque_dataset/musicxml/171-Mozart-concertobasson.xml",
-        "/Users/lyrodrig/datasets/qparse-test/lamarque_dataset/musicxml/348-Mozart-flutemarche.xml",
-        "/Users/lyrodrig/datasets/qparse-test/lamarque_dataset/musicxml/308-Beethoven-sonateop81.xml",
-    ]
-
-    for xmlfile in files:
-        score = m21.converter.parse(str(Path(xmlfile)))
-        model_score(score)
-
-
-def test_durationNumber_from_complex():
-    files = [
-        "/Users/lyrodrig/datasets/qparse-test/lamarque_dataset/musicxml/141-Puig-Roget.xml",
-    ]
-
-    for xmlfile in files:
-        score = m21.converter.parse(str(Path(xmlfile)))
-        model_score(score)
+        add_nt_to_score(score)
 

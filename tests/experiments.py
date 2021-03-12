@@ -36,7 +36,7 @@ files = [
 
 for xmlfile in files:
     score = m21.converter.parse(str(Path(xmlfile)))
-    model_score(score)
+    add_nt_to_score(score)
 
 # #%%
 # get environment

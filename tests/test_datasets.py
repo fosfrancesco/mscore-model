@@ -1,6 +1,6 @@
 import music21 as m21
 from pathlib import Path
-from score_model.m21utils import model_score
+from score_model.m21utils import add_nt_to_score
 from colorama import Fore, init
 
 init(autoreset=True)
@@ -23,7 +23,7 @@ for dataset_path in datasets:
     for xml_file in Path(dataset_path).glob("*.xml"):
         score = m21.converter.parse(xml_file)
         try:
-            model_score(score)
+            add_nt_to_score(score)
         except Exception as error:
             if str(error) not in hashtable:
                 hashtable[str(error)] = []
