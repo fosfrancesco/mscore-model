@@ -13,6 +13,9 @@ For more details on the model see the chapter 2 of my thesis: "The Musical Score
 
 ## Install mscore-model
 It can be easily installed from git by running
+
     python -m pip install git+https://github.com/fosfrancesco/mscore-model
+    
 or if you have also python 2 installed
+
     python3 -m pip install git+https://github.com/fosfrancesco/mscore-model
