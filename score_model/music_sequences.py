@@ -1,8 +1,9 @@
-from typing import Type
+from typing import List
 import numpy as np
 from fractions import Fraction
-from .constant import CONTINUATION_SYMBOL
+from .constant import CONTINUATION_SYMBOL, REST_SYMBOL
 import numbers
+import pretty_midi as pm
 
 
 class Event:
@@ -128,17 +129,33 @@ class Timeline:
             end=new_end,
         )
 
-    def to_json(self, time_type):
+    def to_json(self, time_type: str) -> List[dict]:
+        """Generates a list of dictionaries representation of a timeline. One dict for each event.
+
+        Args:
+            time_type (str): either "onset"or "duration"
+
+        Raises:
+            TypeError: if time_type is invalid
+
+        Returns:
+            list(dict): A list of dictionaries describing the events in the timeline.
+        """
         event_list = []
         if time_type == "onset":
             for event in self.events:
+                musical_artif = (  # to avoid the numpy array for the json encoding
+                    event.musical_artifact
+                    if event.musical_artifact == REST_SYMBOL
+                    else list(event.musical_artifact)
+                )
                 event_list.append(
                     {
                         "onset": {
                             "numerator": Fraction(event.timestamp).numerator,
                             "denominator": Fraction(event.timestamp).denominator,
                         },
-                        "musical_artifact": event.musical_artifact,
+                        "musical_artifact": musical_artif,
                     }
                 )
             return event_list
@@ -146,13 +163,18 @@ class Timeline:
             onsets = [e.timestamp for e in self.events]
             durations = [of - on for on, of in zip(onsets, onsets[1:] + [self.end])]
             for ie, event in enumerate(self.events):
+                musical_artif = (  # to avoid the numpy array for the json encoding
+                    event.musical_artifact
+                    if event.musical_artifact == REST_SYMBOL
+                    else list(event.musical_artifact)
+                )
                 event_list.append(
                     {
                         "duration": {
                             "numerator": Fraction(durations[ie]).numerator,
                             "denominator": Fraction(durations[ie]).denominator,
                         },
-                        "musical_artifact": event.musical_artifact,
+                        "musical_artifact": musical_artif,
                     }
                 )
             return event_list
@@ -210,24 +232,10 @@ def musical_split(seq, k: int):
     ]
 
 
-# def timestamps2rhythm_tree(seq: np.array, depth: int, subtree_parent):
-#     if depth > 6:  # stop recursion because maximum depth is reached
-#         pass
-#     elif seq.size == 1:  # stop recursion (size can never be 0 from musical_split)
-#         LeafNode(subtree_parent, [list(seq)])
-#     else:
-#         recursive_choices = (
-#             []
-#         )  # list of subsubtrees parents corresponding to differen division values
-#         for k in [2, 3, 5, 7]:
-#             subsubtree_parent = InternalNode(None, "")
-#             for subseq in musical_split(seq, k):
-#                 timestamps2rhythm_tree(subseq, depth + 1, subsubtree_parent)
-#             recursive_choices.append(subsubtree_parent)
-#         # find the best division value (if it exists), i.e. the one generating the tree with minimum number of leaves
-#         min_leaves_subtree_index = np.argmin(
-#             [n.subtree_leaves() for n in recursive_choices]
-#         )
-#         # connect this to the subtree parent
-#         subtree_parent.add_child(recursive_choices[min_leaves_subtree_index])
-#         recursive_choices[min_leaves_subtree_index].parent = subtree_parent
+class MusicalContent:
+    def __init__(self, timelines: List[Timeline]):
+        self.timelines = timelines
+
+    def to_json(self, time_type: str) -> dict:
+        return {"voices": [t.to_json(time_type) for t in self.timelines]}
+

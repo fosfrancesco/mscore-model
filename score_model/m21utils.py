@@ -656,7 +656,7 @@ def m21_2_rhythmtree(
 
 
 def expected_stream_constituent_type(stream):
-    """determines the expected type of constituents of a certain type of stream"""
+    """Determines the expected type of constituents of a stream in [Score,Part,Measure]"""
     if isinstance(stream, m21.stream.Score):
         return m21.stream.Part
     elif isinstance(stream, m21.stream.Part):
@@ -705,6 +705,9 @@ def reconstruct(stream):
 
 
 class Voice(m21.stream.Voice):
+    """The voice class. It contains all the information and methods from m21 voice, but also beaming trees and tuplet trees.
+    """
+
     def __init__(self, stream, consider_grace_notes: bool = False):
         m21.stream.Voice.__init__(self, stream, id=stream.id)
         self.beaming_tree = m21_2_notationtree(

@@ -1,4 +1,10 @@
-from score_model.music_sequences import split_content, musical_split, Event, Timeline
+from score_model.music_sequences import (
+    split_content,
+    musical_split,
+    Event,
+    Timeline,
+    MusicalContent,
+)
 from score_model.constant import CONTINUATION_SYMBOL, REST_SYMBOL
 
 import numpy as np
@@ -204,6 +210,22 @@ def test_timeline_export_json3():
     assert tim.to_json("onset") == expected_json
 
 
+def test_timeline_export_json4():
+    # testing the timeline export json function with start != 0
+    timestamps = np.array([1, Fraction(3, 2)])
+    musical_artifacts = np.array([["C1", "C2"], ["E2"]])
+    events = [Event(t, m) for t, m in zip(timestamps, musical_artifacts)]
+    tim = Timeline(events, start=1, end=2)
+    expected_json = [
+        {
+            "duration": {"numerator": 1, "denominator": 2},
+            "musical_artifact": ["C1", "C2"],
+        },
+        {"duration": {"numerator": 1, "denominator": 2}, "musical_artifact": ["E2"],},
+    ]
+    assert tim.to_json("duration") == expected_json
+
+
 def test_timeline_add():
     # first timeline
     timestamps1 = np.array([0, Fraction(1, 3), 1])
@@ -226,3 +248,62 @@ def test_timeline_add():
     assert list([e.timestamp for e in added_tim.events]) == expected_timeline_onsets
     assert added_tim.start == 0
     assert added_tim.end == 3
+
+
+def test_musical_content():
+    # first timeline
+    timestamps1 = np.array([0, Fraction(1, 3), 1])
+    musical_artifacts1 = np.array([["C1", "C2"], REST_SYMBOL, ["E2"]])
+    events1 = [Event(t, m) for t, m in zip(timestamps1, musical_artifacts1)]
+    tim1 = Timeline(events1, start=0, end=2)
+    # second timeline
+    timestamps2 = np.array([0, Fraction(1, 2)])
+    musical_artifacts2 = np.array([["A1"], ["A2"]])
+    events2 = [Event(t, m) for t, m in zip(timestamps2, musical_artifacts2)]
+    tim2 = Timeline(events2, start=0, end=1)
+    # third timeline
+    timestamps3 = np.array([1, Fraction(3, 2)])
+    musical_artifacts3 = np.array([["A1"], ["A2"]])
+    events3 = [Event(t, m) for t, m in zip(timestamps3, musical_artifacts3)]
+    tim3 = Timeline(events3, start=1, end=2)
+    # create musical content
+    mc = MusicalContent([tim1, tim2, tim3])
+    expected_json = {
+        "voices": [
+            [  # first voice
+                {
+                    "duration": {"numerator": 1, "denominator": 3},
+                    "musical_artifact": ["C1", "C2"],
+                },
+                {
+                    "duration": {"numerator": 2, "denominator": 3},
+                    "musical_artifact": REST_SYMBOL,
+                },
+                {
+                    "duration": {"numerator": 1, "denominator": 1},
+                    "musical_artifact": ["E2"],
+                },
+            ],
+            [  # second voice
+                {
+                    "duration": {"numerator": 1, "denominator": 2},
+                    "musical_artifact": ["A1"],
+                },
+                {
+                    "duration": {"numerator": 1, "denominator": 2},
+                    "musical_artifact": ["A2"],
+                },
+            ],
+            [  # third voice
+                {
+                    "duration": {"numerator": 1, "denominator": 2},
+                    "musical_artifact": ["A1"],
+                },
+                {
+                    "duration": {"numerator": 1, "denominator": 2},
+                    "musical_artifact": ["A2"],
+                },
+            ],
+        ]
+    }
+    assert mc.to_json("duration") == expected_json

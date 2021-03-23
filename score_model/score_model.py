@@ -8,13 +8,13 @@ import score_model.m21utils as m21u
 
 
 class ScoreModel:
-    """Class that represent a score
+    """Class that represent a score.
     """
 
     def __init__(
         self, musicxml_path: str, auto_format: bool = True, produce_trees: bool = False
     ):
-        """Initialize the ScoreModel from a music21 score object
+        """Initialize the ScoreModel from a music21 score object.
 
         Args:
             musicxml_path: the path of the music_xml to import
