@@ -1,0 +1,637 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welcome to score-model’s documentation! &#8212; score-model  documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-score_model.m21utils">
+<span id="welcome-to-score-model-s-documentation"></span><h1>Welcome to score-model’s documentation!<a class="headerlink" href="#module-score_model.m21utils" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt id="score_model.m21utils.Voice">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">score_model.m21utils.</span></code><code class="sig-name descname"><span class="pre">Voice</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stream</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">consider_grace_notes</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.m21utils.Voice" title="Permalink to this definition">¶</a></dt>
+<dd><p>The voice class. It contains all the information and methods from m21 voice, but also beaming trees and tuplet trees.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.m21utils.add_nt_to_score">
+<code class="sig-prename descclassname"><span class="pre">score_model.m21utils.</span></code><code class="sig-name descname"><span class="pre">add_nt_to_score</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">score</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.m21utils.add_nt_to_score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes any m21 score, reorganizes it, and compute notation trees</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.m21utils.correct_beamings">
+<code class="sig-prename descclassname"><span class="pre">score_model.m21utils.</span></code><code class="sig-name descname"><span class="pre">correct_beamings</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beamings_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gn_list</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.m21utils.correct_beamings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Correct the sequential beaming structure.</p>
+<p>In case of rests between two beamed notes, we will have a sequence of beamings [start], [partial], [stop].
+this function correct that specific case, putting a “continue” instead of partial.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>beamings_list (list): the sequential structure of beamings</p>
+</dd>
+<dt>Raises:</dt><dd><p>TypeError: Other errors are presents in the input beaming_list.</p>
+</dd>
+<dt>Returns:</dt><dd><p>list: a corrected sequential structure for beamings.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.m21utils.correct_tuplet">
+<code class="sig-prename descclassname"><span class="pre">score_model.m21utils.</span></code><code class="sig-name descname"><span class="pre">correct_tuplet</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tuplets_list</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.m21utils.correct_tuplet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Correct the sequential tuplet structure.</p>
+<p>It seems that the import from musicxml in music21 set some “start” elements as None (that is then converted in “continue” in our representation).
+This function handle this problem setting it back to “start”.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>tuplets_list (list): the sequential structure of tuplets</p>
+</dd>
+<dt>Raises:</dt><dd><p>TypeError: Other errors are presents in the input tuplet_list.</p>
+</dd>
+<dt>Returns:</dt><dd><p>list: a corrected sequential structure for tuplets.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.m21utils.expected_stream_constituent_type">
+<code class="sig-prename descclassname"><span class="pre">score_model.m21utils.</span></code><code class="sig-name descname"><span class="pre">expected_stream_constituent_type</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stream</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.m21utils.expected_stream_constituent_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determines the expected type of constituents of a stream in [Score,Part,Measure]</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.m21utils.get_accidental_number">
+<code class="sig-prename descclassname"><span class="pre">score_model.m21utils.</span></code><code class="sig-name descname"><span class="pre">get_accidental_number</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">acc</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.m21utils.get_accidental_number" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get an integer from a music21 accidental (e.g. # is +1 and bb is -2).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.m21utils.get_beams">
+<code class="sig-prename descclassname"><span class="pre">score_model.m21utils.</span></code><code class="sig-name descname"><span class="pre">get_beams</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gn</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.m21utils.get_beams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the (part of) beamings on top of a general note.</p>
+<p>The beamings are expressed as a list of strings “start”, “continue” and “stop.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>gn (GeneralNote): the music21 general note (e.g. note, rest or chord).</p>
+</dd>
+<dt>Returns:</dt><dd><p>list: the list of beamings.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.m21utils.get_dots">
+<code class="sig-prename descclassname"><span class="pre">score_model.m21utils.</span></code><code class="sig-name descname"><span class="pre">get_dots</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gn</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.m21utils.get_dots" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the number of dots from a general note.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.m21utils.get_note_head">
+<code class="sig-prename descclassname"><span class="pre">score_model.m21utils.</span></code><code class="sig-name descname"><span class="pre">get_note_head</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gn</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.m21utils.get_note_head" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a number encoding the note-head.</p>
+<p>A note-head is encoded as an integer, where 4,2,1 encode respectively a quarter note, a half note and a whole note.
+Shorter durations are not encoded in the head (but in beamings and tuplets).
+Rests are considered as notes for simplicity, i.e. there is not type 8, even if it exist a different head symbol for rests.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>gn (GeneralNote): a music21 general note</p>
+</dd>
+<dt>Returns:</dt><dd><p>int: the integer encoding the note-head</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.m21utils.get_tuplets">
+<code class="sig-prename descclassname"><span class="pre">score_model.m21utils.</span></code><code class="sig-name descname"><span class="pre">get_tuplets</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gn</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.m21utils.get_tuplets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the (part of) tuplets on top of a general note.</p>
+<p>The tuplets are expressed as a list of strings “start”, “continue” and “stop.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>gn (GeneralNote): the music21 general note (e.g. note, rest or chord).</p>
+</dd>
+<dt>Returns:</dt><dd><p>list: the list of tuplets.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.m21utils.get_tuplets_info">
+<code class="sig-prename descclassname"><span class="pre">score_model.m21utils.</span></code><code class="sig-name descname"><span class="pre">get_tuplets_info</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gn</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.m21utils.get_tuplets_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a list with the string that is on the tuplet bracket.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.m21utils.get_type_number">
+<code class="sig-prename descclassname"><span class="pre">score_model.m21utils.</span></code><code class="sig-name descname"><span class="pre">get_type_number</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gn</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.m21utils.get_type_number" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the music21 type number for a generalnote (and correct an MusicXML import problem by setting a default).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.m21utils.gn2label">
+<code class="sig-prename descclassname"><span class="pre">score_model.m21utils.</span></code><code class="sig-name descname"><span class="pre">gn2label</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gn</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.m21utils.gn2label" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a label that uniquely identify a general note (not considering tuplets or beamings).</p>
+<p>The label is a tuple of length 4 that contains: pitches (list), note-head (integer), dots (integer) and grace-note (bool).</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>gn (Generalnote): the music21 general note (e.g. note, rest or chord).</p>
+</dd>
+<dt>Returns:</dt><dd><p>tuple: the label.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.m21utils.gn2pitches_list">
+<code class="sig-prename descclassname"><span class="pre">score_model.m21utils.</span></code><code class="sig-name descname"><span class="pre">gn2pitches_list</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gn</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.m21utils.gn2pitches_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the list of pitches in a general note.</p>
+<p>Pitches is a list where each element is a dictionary with keys: “npp” (string): natural pitch position (the pitch without accidentals), 
+“acc” (int) : accidentals (e.g. # is +1 and bb is -1), “tie” (bool): if the gnote is tied to the precedent gnote.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>gn (GeneralNote): the music21 general note.</p>
+</dd>
+<dt>Returns:</dt><dd><p>list: a list of dictionaries representing pitches.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.m21utils.is_grace">
+<code class="sig-prename descclassname"><span class="pre">score_model.m21utils.</span></code><code class="sig-name descname"><span class="pre">is_grace</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gn</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.m21utils.is_grace" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a boolean from a general note saying if it is a grace note.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.m21utils.is_tied">
+<code class="sig-prename descclassname"><span class="pre">score_model.m21utils.</span></code><code class="sig-name descname"><span class="pre">is_tied</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">note</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.m21utils.is_tied" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a boolean from a general note saying if it is tied to the previous gnote.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.m21utils.m21_2_notationtree">
+<code class="sig-prename descclassname"><span class="pre">score_model.m21utils.</span></code><code class="sig-name descname"><span class="pre">m21_2_notationtree</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gn_list</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">music21.note.GeneralNote</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tree_type</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">consider_grace_notes</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#score_model.bar_trees.NotationTree" title="score_model.bar_trees.NotationTree"><span class="pre">score_model.bar_trees.NotationTree</span></a><a class="headerlink" href="#score_model.m21utils.m21_2_notationtree" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a notation tree from a list of music21 general notes corresponding to the gns in a voice in a measure.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>gn_list (Iterable[m21.note.GeneralNote]): a list of music21 GeneralNote objects
+tree_type (str): either “beamings” or “tuplets” 
+consider_grace_notes (bool) : consider or not grace notes in the structure. WARNING only simple grace notes groups are supported</p>
+</dd>
+<dt>Returns:</dt><dd><p>NotationTree: the notation tree (BT or TT)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.m21utils.m21_2_seq_struct">
+<code class="sig-prename descclassname"><span class="pre">score_model.m21utils.</span></code><code class="sig-name descname"><span class="pre">m21_2_seq_struct</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gn_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">struct_type</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.m21utils.m21_2_seq_struct" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a sequential representation of the structure (beamings and tuplets) from the general notes in a single measure (and a single voice).</p>
+<p>The function gives two outputs: seq_structure and internal_nodes info. 
+The latter contains the tuplet numbers, but it is still present for beamings as empty list of lists.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>gn_list (list of generalNotes): a list of music21 general notes in a measure (and a single voice)
+struct_type (string): either “beamings” or “tuplets”</p>
+</dd>
+<dt>Raises:</dt><dd><p>TypeError: if struct_type is not “beamings” nor “tuplets”</p>
+</dd>
+<dt>Returns:</dt><dd><p>couple: (seq_structure, grouping_info)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.m21utils.m21tuple_from_info">
+<code class="sig-prename descclassname"><span class="pre">score_model.m21utils.</span></code><code class="sig-name descname"><span class="pre">m21tuple_from_info</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tuplet_info</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.m21utils.m21tuple_from_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a m21.duration.Tuplet object from our string description (for a single general note).</p>
+<p>Examples are “3B”, “3:2”, “5:4B” where the B means that the bracket is displayed.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>tuplet_info (string): the description of the tuplet for a single general note</p>
+</dd>
+<dt>Returns:</dt><dd><p>m21.duration.Tuplet: the m21 tuplet object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.m21utils.nt2general_notes">
+<code class="sig-prename descclassname"><span class="pre">score_model.m21utils.</span></code><code class="sig-name descname"><span class="pre">nt2general_notes</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tt</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.m21utils.nt2general_notes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a list of music21 generalNote from a couple (beaming tree, couple tree).</p>
+<p>WARNING: the attribute tie cannot be correctly set on the first note. 
+Remember to run the method set_ties() when the entire voice is ready.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>nt (NotationTree): A notation tree of type “beamings”
+tt (NotationTree): A notation tree of type “tuplets”</p>
+</dd>
+<dt>Returns:</dt><dd><p>list: a list of music21 GeneralNote</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.m21utils.nt2inter_gn_groupings">
+<code class="sig-prename descclassname"><span class="pre">score_model.m21utils.</span></code><code class="sig-name descname"><span class="pre">nt2inter_gn_groupings</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nt</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.m21utils.nt2inter_gn_groupings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the number of grouping <a href="#id1"><span class="problematic" id="id2">``</span></a>between’’ two adjacent notes.</p>
+<p>For beamings trees this is the number of beams connecting two adjacent notes.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>nt (NotationTree): A notation tree, either beaming tree or tuplet tree.</p>
+</dd>
+<dt>Returns:</dt><dd><p>list: A list of length [number_of_leaves - 1], with integers.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.m21utils.nt2over_gn_groupings">
+<code class="sig-prename descclassname"><span class="pre">score_model.m21utils.</span></code><code class="sig-name descname"><span class="pre">nt2over_gn_groupings</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nt</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.m21utils.nt2over_gn_groupings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the number of grouping <a href="#id3"><span class="problematic" id="id4">``</span></a>over’’ a note.</p>
+<p>For beamings trees this is the number of beams over each note.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>nt (NotationTree): A notation tree, either beaming tree or tuplet tree.</p>
+</dd>
+<dt>Returns:</dt><dd><p>list: A list of length [number_of_leaves], with integers.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.m21utils.nt2seq_structure">
+<code class="sig-prename descclassname"><span class="pre">score_model.m21utils.</span></code><code class="sig-name descname"><span class="pre">nt2seq_structure</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nt</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.m21utils.nt2seq_structure" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create the sequential representation of groupings from a notation tree (hierarchical representation).</p>
+<p>In particular the functions generates two outputs.
+seq_structure : a nested list of length [number_of_leaves] in the nt, with “start”,”stop” and “continue” elements depending on the tree structure;
+grouping_info : a nested list of length [number_of_leaves] with the grouping info.
+The latter corresponds for tuplets to the tuplet name in the bracket (and B if the bracket is visible),
+but it is computed also for beamings, as list of empty strings, to preserve the similarity.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>nt (NotationTree): A notation tree, either beaming tree or tuplet tree.</p>
+</dd>
+<dt>Returns:</dt><dd><p>couple: (seq_structure,grouping_info)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.m21utils.reconstruct">
+<code class="sig-prename descclassname"><span class="pre">score_model.m21utils.</span></code><code class="sig-name descname"><span class="pre">reconstruct</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stream</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.m21utils.reconstruct" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function ensures that the score is systematically of the structure : Score -&gt; Part -&gt; Measure -&gt; Voice
+It recursively goes through the whole score, if the type of stream is not as expected,
+a new stream is inserted.</p>
+<p>Args: stream (m21.stream) : a stream of m21 objects</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.m21utils.score_notation_tree">
+<code class="sig-prename descclassname"><span class="pre">score_model.m21utils.</span></code><code class="sig-name descname"><span class="pre">score_notation_tree</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">score</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.m21utils.score_notation_tree" title="Permalink to this definition">¶</a></dt>
+<dd><p>Replaces the voices with score model voices</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.m21utils.window">
+<code class="sig-prename descclassname"><span class="pre">score_model.m21utils.</span></code><code class="sig-name descname"><span class="pre">window</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seq</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.m21utils.window" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a sliding window (of width n) over data.</p>
+</dd></dl>
+
+<span class="target" id="module-score_model.bar_trees"></span><dl class="py class">
+<dt id="score_model.bar_trees.InternalNode">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">score_model.bar_trees.</span></code><code class="sig-name descname"><span class="pre">InternalNode</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parent</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.bar_trees.InternalNode" title="Permalink to this definition">¶</a></dt>
+<dd><p>The class for the Internal node, extending Node.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="score_model.bar_trees.LeafNode">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">score_model.bar_trees.</span></code><code class="sig-name descname"><span class="pre">LeafNode</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parent</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.bar_trees.LeafNode" title="Permalink to this definition">¶</a></dt>
+<dd><p>The class for the Leaf node, extending Node.</p>
+<dl class="py method">
+<dt id="score_model.bar_trees.LeafNode.subtree_leaves">
+<code class="sig-name descname"><span class="pre">subtree_leaves</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#score_model.bar_trees.LeafNode.subtree_leaves" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the number of leaves in the subtree under the node.This class is overridden in LeafNode to make the recursion stop.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="score_model.bar_trees.LeafNode.subtree_size">
+<code class="sig-name descname"><span class="pre">subtree_size</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#score_model.bar_trees.LeafNode.subtree_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the number of nodes in the subtree under the node (counting also the node itself).This class is overridden in LeafNode to make the recursion stop.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="score_model.bar_trees.LeafNode.to_string">
+<code class="sig-name descname"><span class="pre">to_string</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#score_model.bar_trees.LeafNode.to_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the string representation of the subtree under the Node. This class is overridden in LeafNode to make the recursion stop.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="score_model.bar_trees.Node">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">score_model.bar_trees.</span></code><code class="sig-name descname"><span class="pre">Node</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parent</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.bar_trees.Node" title="Permalink to this definition">¶</a></dt>
+<dd><p>The generic Tree node class.</p>
+<dl class="py method">
+<dt id="score_model.bar_trees.Node.add_child">
+<code class="sig-name descname"><span class="pre">add_child</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">child</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.bar_trees.Node.add_child" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a children to the node. Not really useful in standard utilisation, as a new node is added to the children list when it is created.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="score_model.bar_trees.Node.complete">
+<code class="sig-name descname"><span class="pre">complete</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#score_model.bar_trees.Node.complete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return true if all the subtree under the node either have children or are LeafNodes</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="score_model.bar_trees.Node.subtree_leaves">
+<code class="sig-name descname"><span class="pre">subtree_leaves</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#score_model.bar_trees.Node.subtree_leaves" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the number of leaves in the subtree under the node.This class is overridden in LeafNode to make the recursion stop.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="score_model.bar_trees.Node.subtree_size">
+<code class="sig-name descname"><span class="pre">subtree_size</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#score_model.bar_trees.Node.subtree_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the number of nodes in the subtree under the node (counting also the node itself).This class is overridden in LeafNode to make the recursion stop.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="score_model.bar_trees.Node.to_string">
+<code class="sig-name descname"><span class="pre">to_string</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#score_model.bar_trees.Node.to_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the string representation of the subtree under the Node. This class is overridden in LeafNode to make the recursion stop.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="score_model.bar_trees.NotationTree">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">score_model.bar_trees.</span></code><code class="sig-name descname"><span class="pre">NotationTree</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tree_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quality_check</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.bar_trees.NotationTree" title="Permalink to this definition">¶</a></dt>
+<dd><p>The class for the Notation Tree.</p>
+<p>Two kinds of notation trees exist: beaming tree (BT) and tuplet tree (TT), 
+encoding in the tree structure respectively the beaming and the tuplet information in a voice in  a measure.
+The information about the notes are encoded in leaves and the same for the BT and the TT of a voice in a measure.</p>
+<p>This class just provide functions on top of the Node structure.</p>
+<dl class="py method">
+<dt id="score_model.bar_trees.NotationTree.show">
+<code class="sig-name descname"><span class="pre">show</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">save</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'tree'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.bar_trees.NotationTree.show" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print a graphical version of the tree.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>save (bool, optional): save the image as a file. Defaults to False.
+name (str, optional): the file name. Defaults to “tree”.
+simplify_label (function, optional): a function to simplify the tree labels for a clear visualization. Defaults is a function that does nothing.</p>
+</dd>
+<dt>Returns:</dt><dd><p>Digraph: the digraph object</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="score_model.bar_trees.RhythmTree">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">score_model.bar_trees.</span></code><code class="sig-name descname"><span class="pre">RhythmTree</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quality_check</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.bar_trees.RhythmTree" title="Permalink to this definition">¶</a></dt>
+<dd><p>The class for Rhythm Trees.</p>
+<p>Each node encode a specific duration that is divided equally between his children.
+Each LeafNode has a label that contains a list of general notes.
+Each general note is a list of pitches expressed as MIDI numbers.</p>
+<p>This class give functions on top of the Node structure.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="score_model.bar_trees.Root">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">score_model.bar_trees.</span></code><code class="sig-name descname"><span class="pre">Root</span></code><a class="headerlink" href="#score_model.bar_trees.Root" title="Permalink to this definition">¶</a></dt>
+<dd><p>The class for the Root node (e.g. without parent), extending Node.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="score_model.bar_trees.Tree">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">score_model.bar_trees.</span></code><code class="sig-name descname"><span class="pre">Tree</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.bar_trees.Tree" title="Permalink to this definition">¶</a></dt>
+<dd><p>The generic class for trees</p>
+<dl class="py method">
+<dt id="score_model.bar_trees.Tree.get_ancestors">
+<code class="sig-name descname"><span class="pre">get_ancestors</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.bar_trees.Tree.get_ancestors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a list of all the ancestors in the tree of a node.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="score_model.bar_trees.Tree.get_depth">
+<code class="sig-name descname"><span class="pre">get_depth</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.bar_trees.Tree.get_depth" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the depth of a node in the tree.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="score_model.bar_trees.Tree.get_lca">
+<code class="sig-name descname"><span class="pre">get_lca</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">node2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.bar_trees.Tree.get_lca" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the lower common ancestor (lca) of two input nodes.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>node1 (Node): the first node to consider.
+node2 (Node): the second node to consider.</p>
+</dd>
+<dt>Returns:</dt><dd><p>Node: the lca of the input nodes.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="score_model.bar_trees.Tree.get_leaf_nodes">
+<code class="sig-name descname"><span class="pre">get_leaf_nodes</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">local_root</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.bar_trees.Tree.get_leaf_nodes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list with all Leaf Nodes in the tree.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="score_model.bar_trees.Tree.get_nodes">
+<code class="sig-name descname"><span class="pre">get_nodes</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">local_root</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.bar_trees.Tree.get_nodes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list with all nodes in the tree.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="score_model.bar_trees.Tree.show">
+<code class="sig-name descname"><span class="pre">show</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">save=False</span></em>, <em class="sig-param"><span class="pre">name='tree'</span></em>, <em class="sig-param"><span class="pre">simplify_label=&lt;function</span> <span class="pre">Tree.&lt;lambda&gt;&gt;</span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.bar_trees.Tree.show" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print a graphical version of the tree.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>save (bool, optional): save the image as a file. Defaults to False.
+name (str, optional): the file name. Defaults to “tree”.
+simplify_label (function, optional): a function to simplify the tree labels for a clear visualization. Defaults is a function that does nothing.</p>
+</dd>
+<dt>Returns:</dt><dd><p>Digraph: the digraph object</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.bar_trees.accidental2string">
+<code class="sig-prename descclassname"><span class="pre">score_model.bar_trees.</span></code><code class="sig-name descname"><span class="pre">accidental2string</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">acc_number</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.bar_trees.accidental2string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a string repr of accidentals.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.bar_trees.dot2string">
+<code class="sig-prename descclassname"><span class="pre">score_model.bar_trees.</span></code><code class="sig-name descname"><span class="pre">dot2string</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dot</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.bar_trees.dot2string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a string repr of dots.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.bar_trees.gracenote2string">
+<code class="sig-prename descclassname"><span class="pre">score_model.bar_trees.</span></code><code class="sig-name descname"><span class="pre">gracenote2string</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gracenote</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.bar_trees.gracenote2string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a string repr of a gracenote.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.bar_trees.simplify_label">
+<code class="sig-prename descclassname"><span class="pre">score_model.bar_trees.</span></code><code class="sig-name descname"><span class="pre">simplify_label</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.bar_trees.simplify_label" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a simple string representation of the notation tree leaf node labels for a better visualization.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>label (tuple): the label of a leaf node in a notation tree</p>
+</dd>
+<dt>Returns:</dt><dd><p>string: a simple but still unique representation of the leaf</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.bar_trees.tie2string">
+<code class="sig-prename descclassname"><span class="pre">score_model.bar_trees.</span></code><code class="sig-name descname"><span class="pre">tie2string</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tie</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.bar_trees.tie2string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a string repr of a tie.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.bar_trees.timeline2rt">
+<code class="sig-prename descclassname"><span class="pre">score_model.bar_trees.</span></code><code class="sig-name descname"><span class="pre">timeline2rt</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tim</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">score_model.music_sequences.Timeline</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allowed_divisions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[2,</span> <span class="pre">3]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_depth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">7</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">div_preferences</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.bar_trees.timeline2rt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a Rhythm Tree from a timeline.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>tim (Timeline): the input timeline.
+allowed_divisions (list, optional): division to consider. Defaults to [2, 3].
+max_depth (int, optional): maximum depth to consider. Defaults to 7.
+div_preferences ([type], optional): different depth may have different preferred div values. Defaults to None.</p>
+</dd>
+<dt>Returns:</dt><dd><p>RhythmTree: the rhythm tree.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<span class="target" id="module-score_model.music_sequences"></span><dl class="py function">
+<dt id="score_model.music_sequences.musical_split">
+<code class="sig-prename descclassname"><span class="pre">score_model.music_sequences.</span></code><code class="sig-name descname"><span class="pre">musical_split</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seq</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.music_sequences.musical_split" title="Permalink to this definition">¶</a></dt>
+<dd><p>Split a sequence of musical events in the interval [0,1[ in subsequences and rescale them.</p>
+<p>This function add the beginning of the interval. 
+For example music splitting the sequence [0,0.25,0.75] in 2 parts generates two arrays [0,0.5], [0,0.5]</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>seq (list): the input list of temporal postion of musical events
+k (int): the number of intervals</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="score_model.music_sequences.split_content">
+<code class="sig-prename descclassname"><span class="pre">score_model.music_sequences.</span></code><code class="sig-name descname"><span class="pre">split_content</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seq</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0,</span> <span class="pre">1)</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.music_sequences.split_content" title="Permalink to this definition">¶</a></dt>
+<dd><p>Split the content of a sorted array in equal intervals.</p>
+<p>For an interval (a,b) it will split at positions [Fraction(i, k) * a + b) for i in range(1, k)].
+For example for the interval (0,2) with k=4, it will split at 0.5,1,1.5.
+WARNING: the sequence should contains Fraction with limit_denominator to avoid rounding problems.
+Also problematic fractions like 0.1 could create problems</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>seq (list): the input list of numbers
+k (int): the number of intervals</p>
+</dd>
+<dt>Returns:</dt><dd><p>list: A list of intervals</p>
+</dd>
+</dl>
+</dd></dl>
+
+<span class="target" id="module-score_model.score_model"></span><dl class="py class">
+<dt id="score_model.score_model.ScoreModel">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">score_model.score_model.</span></code><code class="sig-name descname"><span class="pre">ScoreModel</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">musicxml_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">auto_format</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">produce_trees</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#score_model.score_model.ScoreModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class that represent a score.</p>
+</dd></dl>
+
+<span class="target" id="module-score_model.server_communication"></span><div class="toctree-wrapper compound">
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="#">score-model</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="#">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, Francesco Foscarin.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
