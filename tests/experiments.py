@@ -120,3 +120,6 @@ env["musescoreDirectPNGPath"] = "path/to/your/museScore"
 # score.show()
 
 # %%
+from score_model.server_communication import send_to_qparse
+from score_model.music_sequences import Timeline, MusicalContent
+

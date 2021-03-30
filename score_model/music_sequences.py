@@ -152,8 +152,8 @@ class Timeline:
                 event_list.append(
                     {
                         "onset": {
-                            "numerator": Fraction(event.timestamp).numerator,
-                            "denominator": Fraction(event.timestamp).denominator,
+                            "numerator": int(Fraction(event.timestamp).numerator),
+                            "denominator": int(Fraction(event.timestamp).denominator),
                         },
                         "musical_artifact": musical_artif,
                     }
@@ -171,8 +171,8 @@ class Timeline:
                 event_list.append(
                     {
                         "duration": {
-                            "numerator": Fraction(durations[ie]).numerator,
-                            "denominator": Fraction(durations[ie]).denominator,
+                            "numerator": int(Fraction(durations[ie]).numerator),
+                            "denominator": int(Fraction(durations[ie]).denominator),
                         },
                         "musical_artifact": musical_artif,
                     }
