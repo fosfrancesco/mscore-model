@@ -1,0 +1,23 @@
+import math
+
+""" File with constants for voice separation """
+
+MAX_VOICES = 3
+
+# VERTICAL COSTS
+VOICE_CROSSING_COST = 50
+DIFFERENT_LENGTH_COST = math.inf
+#TONAL_FUSION_COST = 2  # TODO
+CHORD_WIDTH_COST = math.inf
+
+# HORIZONTAL COSTS
+REST_COST = 0.2
+OVERLAP_COST = 10
+DURATION_COST = 0
+
+# OTHER COSTS
+NEW_VOICE_COST = 5
+EMPTY_VOICE_COST = 10
+
+
+
