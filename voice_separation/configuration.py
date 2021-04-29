@@ -23,7 +23,7 @@ class Configuration:
         voices: List of m21.stream.Voice created from the best previous configuration and the notes in spread of this Configuration.
     """
 
-    def __init__(self, offset=-1, spread=[]):
+    def __init__(self, offset=-1, spread=[], parameters=[]):
         self.offset = offset
         self.spread = spread
         self.monophonic = False

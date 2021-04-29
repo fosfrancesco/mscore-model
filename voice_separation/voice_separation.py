@@ -1,12 +1,8 @@
 import music21 as m21
 from configuration import Configuration
-from consistency import get_voices
+from consistency import score_compare
 from time import time
 import math
-
-dataset = {
-    '/Users/lyrodrig/datasets/voicesep',
-}
 
 def get_notes(score, start_offset, end_offset):
     """Creates a dict mapping the notes of a score in interval [start_offset, end_offset].
@@ -18,7 +14,6 @@ def get_notes(score, start_offset, end_offset):
 
     Returns: 
         A dict that maps offset to a list of notes beginning at the offset in the score.
-
     """
     scoreTree = m21.tree.fromStream.asTimespans(score, flatten=True, classList=(m21.note.Note, m21.chord.Chord))
 
@@ -28,7 +23,10 @@ def get_notes(score, start_offset, end_offset):
     while current_offset is not None and current_offset <= end_offset:
         verticality = scoreTree.getVerticalityAt(current_offset)
         notes_by_offset[current_offset] = []
-        elements = [timespan.element for timespan in verticality.startTimespans]
+        if current_offset == start_offset:
+            elements = [timespan.element for timespan in verticality.startAndOverlapTimespans]
+        else:
+            elements = [timespan.element for timespan in verticality.startTimespans]
         for element in elements:
             if isinstance(element, m21.chord.Chord):
                 for note in element:
@@ -63,7 +61,8 @@ def separate_voices(score, start_offset, end_offset):
     for offset, notes in notes_by_offset.items():
         #print("#####################################################################")
         #print("OFFSET", offset)
-        #print(notes)
+        #print(notes) 
+
         # get all the configurations that can 
         solutions[offset] = initial_config.get_all_configs(notes, offset)
         
@@ -88,53 +87,34 @@ def separate_voices(score, start_offset, end_offset):
     # in the last list of configurations.
 
     min_cost = math.inf
+    res_config = solutions[end_offset][0]
     for config in solutions[end_offset]:
+        #config.print()
         if min_cost > config.cost:
             res_config = config
             min_cost = config.cost
-    #res_config.print()
+    res_config.print()
 
     # turn the result configuration into a stream
     return res_config.to_stream()
 
-def test_voice_separation(xml_score, midi_score):
-    original_score = get_voices(xml_score)
-    our_score = separate_voices(midi_score, 0.0, 3.0)
-    our_score.show('t')
-
-    # TODO
-    return
+midi_file_name = '/Users/lyrodrig/datasets/asap-dataset/Bach/Italian_concerto/midi_score.mid'
+#xml_file_name = '/Users/lyrodrig/datasets/asap-dataset/Bach/Italian_concerto/xml_score.musicxml'
 
 
-xml_file_name = '/Users/lyrodrig/datasets/asap-dataset/Bach/Italian_concerto/midi_score.mid'
-midi_file_name = '/Users/lyrodrig/datasets/asap-dataset/Bach/Italian_concerto/xml_score.musicxml'
+#midi_file_name = '/Users/lyrodrig/Downloads/musicnet_midis/Bach/2214_prelude2.mid'
+#xml_file_name = '/Users/lyrodrig/datasets/asap-dataset/Bach/Fugue/bwv_848/xml_score.musicxml'
 
-xml_score = m21.converter.parse(xml_file_name)
+
+#xml_score = m21.converter.parse(xml_file_name)
 midi_score = m21.converter.parse(midi_file_name)
-test_voice_separation(xml_score, midi_score)
 
+voices = m21.stream.Score()
+for part in midi_score.parts:
+    part = part.flat
+    notes = part.getElementsByOffset(0.0, 4.0, classList=['Note', 'Chord'])
+    voices.append(m21.stream.Part([el for el in notes]))
 
-#config = separate_voices(score, 0.0, 2.0)
-#config.show('t')
-"""
-file_name = '/Users/lyrodrig/datasets/asap-dataset/Bach/Italian_concerto/xml_score.musicxml'
-score = m21.converter.parse(file_name)
-score.makeVoices(inPlace=True)
-#score.show('t')
-print(len(score.getElementsByClass('Voice')))
+result_voices = separate_voices(midi_score, 0.0, 4.0)
+print(score_compare(voices, result_voices))
 
-new_stream = m21.stream.Stream()
-score = score.voicesToParts()
-for part in score.parts:
-    new_stream.insert(part.flat)
-
-new_stream.show('t')
-print(len(new_stream))
-"""
-"""
-print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-for config in voices:
-    config.print()
-
-print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-"""
