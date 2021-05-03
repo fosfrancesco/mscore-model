@@ -5,6 +5,34 @@ import math
 from cost_constants import *
 
 
+class Parameters:
+    def __init__(self, max_voices=MAX_VOICES, voice_crossing=VOICE_CROSSING_COST,
+            chord_width=CHORD_WIDTH_COST, rest_cost=REST_COST,
+            overlap=OVERLAP_COST, duration=DURATION_COST,
+            different_length=DIFFERENT_LENGTH_COST,
+            new_voice=NEW_VOICE_COST, empty_voice=EMPTY_VOICE_COST):
+        self.max_voices = max_voices
+        self.voice_crossing = voice_crossing
+        self.chord_width = chord_width
+        self.rest_cost = rest_cost
+        self.overlap = overlap
+        self.duration = duration
+        self.different_length = different_length
+        self.new_voice = new_voice
+        self.empty_voice = empty_voice
+    
+    def print(self):
+        print(self.max_voices, "\tmax voice")
+        print(self.voice_crossing, "\tvoice cross")
+        print(self.chord_width, "\tchord width")
+        print(self.rest_cost, "\trest")
+        print(self.overlap, "\toverlap")
+        print(self.duration, "\tduration")
+        print(self.different_length, "\tdifferent length")
+        print(self.new_voice, "\tnew voice")
+        print(self.empty_voice, "\tempty voice")
+
+
 class Configuration:
     """ Class representing the list of voices at a certain offset. 
 
@@ -23,34 +51,36 @@ class Configuration:
         voices: List of m21.stream.Voice created from the best previous configuration and the notes in spread of this Configuration.
     """
 
-    def __init__(self, offset=-1, spread=[], parameters=[]):
+    def __init__(self, parameters, offset=-1, spread=[], instrument=''):
+        self.param = parameters
         self.offset = offset
         self.spread = spread
-        self.monophonic = False
+        self.instrument = instrument
+        self.monophonic = True
         if offset > -1:
             self.calculate_vertical_cost()
         self.horizontal_cost = {}
         self.cost = 0
         self.voices = {}
-        for voice_nb in range(1, MAX_VOICES+1):
+        for voice_nb in range(1, self.param.max_voices+1):
             self.voices[voice_nb] = m21.stream.Voice()
 
     def get_all_configs(self, notes, offset, note_config={}):
         """Takes a list of notes and creates a list of configurations for each combination of notes possible. """
         # Stop condition
         if notes == []:
-            return Configuration(offset, note_config)
+            return Configuration(self.param, offset, note_config)
 
         # Initialization
         if note_config == {}:
-            for index in range(1, MAX_VOICES+1):
+            for index in range(1, self.param.max_voices+1):
                 note_config[index] = []
 
         configs = []
         current_note = notes[0]
 
         # Recursion
-        for index in range(1, MAX_VOICES+1):
+        for index in range(1, self.param.max_voices+1):
             new_note_config = self.copy(note_config)
             new_note_config[index].append(current_note)
 
@@ -140,7 +170,7 @@ class Configuration:
             if not isinstance(last_notes, list):
                 last_notes = [last_notes]
             if last_notes is []:
-                cost = cost + NEW_VOICE_COST
+                cost = cost + self.param.new_voice
 
             for note in notes:
                 for last_note in last_notes:
@@ -152,57 +182,80 @@ class Configuration:
                         self._calculate_pitch_proximity_cost(last_note, note)
                     cost = cost + \
                         self._calculate_duration_cost(last_note, note)
-        if not cost: cost = EMPTY_VOICE_COST
+        if not cost: cost = self.param.empty_voice
         self.horizontal_cost[config] = cost
 
+    ### VERTICAL COSTS ###
+
     def _calculate_chord_width(self, notes):
-        if len(notes) <= 1: return 0
-        notes.sort()
-        range = abs(notes[0].pitch.midi - notes[-1].pitch.midi)
-        if range > 15:
-            return CHORD_WIDTH_COST
+        """Check that the chord can be played with one hand. Only applies for piano. """
+        if self.instrument.lower() == 'piano':
+            if len(notes) <= 1:
+                return 0
+            notes.sort()
+            range = abs(notes[0].pitch.midi - notes[-1].pitch.midi)
+            if range > 15:
+                return self.param.chord_width
+            return 0
+        return 0
+    
+    def _calculate_tonal_fusion_cost(self, pair):
+        """TODO"""
+        return 0
+    
+    def _calculate_voice_cross_cost(self, pair):
+        """Penalizes voice crossings. """
+        first_note = pair[0]
+        second_note = pair[1]
+        if (first_note[0] > second_note[0] and first_note[1] > second_note[1]) \
+                or (first_note[0] < second_note[0] and first_note[1] < second_note[1]):
+            return self.param.voice_crossing
         return 0
 
+    def _calculate_length_cost(self, pair):
+        """Penalizes having chords in which notes have differents lengths. """
+        first_note = pair[0]
+        second_note = pair[1]
+        if (first_note[0] == second_note[0] and first_note[1].quarterLength != second_note[1].quarterLength):
+            return self.param.different_length
+        return 0
+
+    ### HORIZONTAL COSTS
+
     def _calculate_duration_cost(self, last_note, note):
+        """Penalizes notes TODO """
         if not note.quarterLength or not last_note.quarterLength:
             return 0
         if last_note.quarterLength % note.quarterLength or \
                 note.quarterLength % last_note.quarterLength:
             return 0
-        return DURATION_COST + abs(note.quarterLength - last_note.quarterLength) * 10
-
-    def _calculate_tonal_fusion_cost(self, pair):
-        return 0
-
-    def _calculate_voice_cross_cost(self, pair):
-        first_note = pair[0]
-        second_note = pair[1]
-        if (first_note[0] > second_note[0] and first_note[1] > second_note[1]) \
-                or (first_note[0] < second_note[0] and first_note[1] < second_note[1]):
-            return VOICE_CROSSING_COST
-        return 0
-
-    def _calculate_length_cost(self, pair):
-        first_note = pair[0]
-        second_note = pair[1]
-        if (first_note[0] == second_note[0] and first_note[1].quarterLength != second_note[1].quarterLength):
-            return DIFFERENT_LENGTH_COST
-        return 0
+        #return self.param.duration + abs(note.quarterLength - last_note.quarterLength) * 10
+        return self.param.duration
 
     def _calculate_pitch_proximity_cost(self, last_note, note):
+        """Penalizes consecutive notes with large intervals. """
         return self.get_distance(last_note, note)
 
-    # Assign 6 for each pair of consecutive notes with the same voice label having a temporal gap(penalize rests).
     def _calculate_rest_cost(self, prev_note, current_note):
+        """Penalizes adding a note in a voice that has a large gap. """
         if prev_note.offset + prev_note.quarterLength < current_note.offset:
-            return REST_COST
+            return self.param.rest_cost
         return 0
 
-    # Assign 7 for each pair of consecutive notes with the same voice label that temporally overlap.
     def _calculate_overlap_cost(self, prev_note, current_note):
+        """Penalizes adding a note to a voice where a note is already sounding. """
         if prev_note and prev_note.quarterLength > current_note.offset:
-            return OVERLAP_COST
+            return self.param.overlap
         return 0
+
+    def _calculate_leap_cost(self, voice):
+        l = min(len(voice), 5)
+        num = 0
+        denom = 0
+        for i in range(l):
+            num += pow(2, i) * voice[len(voice)-i].pitch.midi
+            denom += pow(2, i)
+        return num / denom
 
     def get_cost(self):
         return self.cost

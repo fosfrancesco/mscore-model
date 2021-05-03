@@ -1,6 +1,8 @@
 import music21 as m21
 import numpy as np
+from scipy import optimize
 
+from voice_separation import separate_voices
 def compare(note1, note2):
     return note1 == note2 and note1.offset == note2.offset
 
@@ -26,11 +28,7 @@ def voice_distance(voice1, voice2):
                 d[i, j-1] + 1, # insertion dans voice1 du nouveau caractère de voice2
                 d[i-1, j-1] + sub_cost, # substition
             )
-            if i > 1 and j > 1 and compare(voice1[i-1], voice2[j-2]) and compare(voice1[i-2], voice2[j-1]):
-                d[i, j] = min(
-                    d[i, j],
-                    d[i-2, j-2] + sub_cost # transposition
-                )
+
     return d[x, y]
 
 def score_compare(stream1, stream2):
@@ -53,6 +51,28 @@ def score_compare(stream1, stream2):
         if i < len(m)-1: m[i+1, index] = np.inf
         cost += min
     return cost
+
+
+
+        
+def f(x, *params):
+    """This function performs the voice separation with parameters
+    
+    returns cost of voice sep #TODO"""
+    score, start_offset, end_offset = params
+    voices = separate_voices(score, start_offset, end_offset, x)
+    return score_compare(score, voices)
+
+def grid_search(score, start_offset, end_offset):
+    rranges = (slice(0, 1, 0.1), slice(0, 1, 0.1), slice(0, 1, 0.1),
+            slice(0, 1, 0.1), slice(0, 1, 0.1), slice(0, 1, 0.1),
+            slice(0, 1, 0.1), slice(0, 1, 0.1), 
+            )
+    res_brute = optimize.brute(f, rranges, args=(score, start_offset, end_offset),
+                                full_output=True, finish=optimize.fmin)
+
+    print(res_brute[0])
+    return res_brute[0]
 
     
 """

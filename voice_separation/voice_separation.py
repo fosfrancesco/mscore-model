@@ -1,5 +1,5 @@
 import music21 as m21
-from configuration import Configuration
+from configuration import Configuration, Parameters
 from consistency import score_compare
 from time import time
 import math
@@ -40,7 +40,7 @@ def get_notes(score, start_offset, end_offset):
     return notes_by_offset
 
 
-def separate_voices(score, start_offset, end_offset):
+def separate_voices(score, start_offset, end_offset, parameters):
     """ Separate voices from score in interval [start_offset, end_offset] 
     
     Args:
@@ -56,14 +56,14 @@ def separate_voices(score, start_offset, end_offset):
     # initialization
     solutions = {}
     # TODO make get_all_configs not a class method...
-    initial_config = Configuration() # an empty config to initiate the algorithm from
+    initial_config = Configuration(parameters) # an empty config to initiate the algorithm from
 
     for offset, notes in notes_by_offset.items():
         #print("#####################################################################")
         #print("OFFSET", offset)
         #print(notes) 
 
-        # get all the configurations that can 
+        # get all the configurations possible
         solutions[offset] = initial_config.get_all_configs(notes, offset)
         
         # calculate the horizontal cost of newly created 
@@ -87,6 +87,7 @@ def separate_voices(score, start_offset, end_offset):
     # in the last list of configurations.
 
     min_cost = math.inf
+    print(solutions[end_offset])
     res_config = solutions[end_offset][0]
     for config in solutions[end_offset]:
         #config.print()
@@ -98,13 +99,12 @@ def separate_voices(score, start_offset, end_offset):
     # turn the result configuration into a stream
     return res_config.to_stream()
 
-midi_file_name = '/Users/lyrodrig/datasets/asap-dataset/Bach/Italian_concerto/midi_score.mid'
+#midi_file_name = '/Users/lyrodrig/datasets/asap-dataset/Bach/Italian_concerto/midi_score.mid'
 #xml_file_name = '/Users/lyrodrig/datasets/asap-dataset/Bach/Italian_concerto/xml_score.musicxml'
 
 
-#midi_file_name = '/Users/lyrodrig/Downloads/musicnet_midis/Bach/2214_prelude2.mid'
+midi_file_name = '/Users/lyrodrig/Downloads/musicnet_midis/Bach/2214_prelude2.mid'
 #xml_file_name = '/Users/lyrodrig/datasets/asap-dataset/Bach/Fugue/bwv_848/xml_score.musicxml'
-
 
 #xml_score = m21.converter.parse(xml_file_name)
 midi_score = m21.converter.parse(midi_file_name)
@@ -112,9 +112,9 @@ midi_score = m21.converter.parse(midi_file_name)
 voices = m21.stream.Score()
 for part in midi_score.parts:
     part = part.flat
-    notes = part.getElementsByOffset(0.0, 4.0, classList=['Note', 'Chord'])
+    notes = part.getElementsByOffset(0.0, 1.5, classList=['Note', 'Chord'])
     voices.append(m21.stream.Part([el for el in notes]))
+parameters = Parameters()
 
-result_voices = separate_voices(midi_score, 0.0, 4.0)
+result_voices = separate_voices(midi_score, 0.0, 1.0, parameters)
 print(score_compare(voices, result_voices))
-
