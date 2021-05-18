@@ -1,8 +1,6 @@
 import music21 as m21
 import numpy as np
-from scipy import optimize
 
-from voice_separation import separate_voices
 def compare(note1, note2):
     return note1 == note2 and note1.offset == note2.offset
 
@@ -36,7 +34,7 @@ def score_compare(stream1, stream2):
     y = len(stream2)
 
     if x != y: 
-        raise Exception("Cannot compare two scores with different number of voices")
+        raise Exception("Cannot compare two scores with different number of voices", x, y)
 
     m = np.zeros((x, y))
     for voice1, i in zip(stream1, range(x)):
@@ -45,7 +43,6 @@ def score_compare(stream1, stream2):
 
     cost = 0
     for i in range(0, len(m)):
-        print(m)
         min = np.amin(m[i])
         index = np.where(min == m[i])[0][0]
         if i < len(m)-1: m[i+1, index] = np.inf
@@ -53,28 +50,6 @@ def score_compare(stream1, stream2):
     return cost
 
 
-
-        
-def f(x, *params):
-    """This function performs the voice separation with parameters
-    
-    returns cost of voice sep #TODO"""
-    score, start_offset, end_offset = params
-    voices = separate_voices(score, start_offset, end_offset, x)
-    return score_compare(score, voices)
-
-def grid_search(score, start_offset, end_offset):
-    rranges = (slice(0, 1, 0.1), slice(0, 1, 0.1), slice(0, 1, 0.1),
-            slice(0, 1, 0.1), slice(0, 1, 0.1), slice(0, 1, 0.1),
-            slice(0, 1, 0.1), slice(0, 1, 0.1), 
-            )
-    res_brute = optimize.brute(f, rranges, args=(score, start_offset, end_offset),
-                                full_output=True, finish=optimize.fmin)
-
-    print(res_brute[0])
-    return res_brute[0]
-
-    
 """
 voice1 = m21.stream.Voice()
 voice2 = m21.stream.Voice()
